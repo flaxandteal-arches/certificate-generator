@@ -270,7 +270,7 @@
         async function loadResources() {
             try {
                 // const response = await fetch(`${API_BASE}/search/resources?format=json`);
-                const response = await fetch(`${API_BASE}/api/certificate-generator/resources/`);
+                const response = await fetch(`${API_BASE}/certificate-generator/resources/`);
                 const data = await response.json();
                 
                 resources = data.resources;
@@ -306,8 +306,8 @@
                 }
                 console.log('Loading templates with params:', params);
 
-                const response = await fetch(`${API_BASE}/api/certificate-generator/templates?${params}`);
-                // const response = await fetch(`${API_BASE}/api/certificate-generator/action`);
+                const response = await fetch(`${API_BASE}/certificate-generator/templates?${params}`);
+                // const response = await fetch(`${API_BASE}/certificate-generator/action`);
                 const data = await response.json();
 
                 templates = data.templates || [];
@@ -429,7 +429,7 @@
             showMessage('Processing your request...', 'info');
             
             try {
-                const response = await fetch(`${API_BASE}/api/certificate-generator/process_template/`, {
+                const response = await fetch(`${API_BASE}/certificate-generator/process_template/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
