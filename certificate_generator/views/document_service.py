@@ -8,8 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from quartz.views.processors import document_template_processor
-from quartz.views.registry import TemplateRegistry
+from certificate_generator.views.processors import document_template_processor
+from certificate_generator.views.registry import TemplateRegistry
 
 
 class DocumentService:

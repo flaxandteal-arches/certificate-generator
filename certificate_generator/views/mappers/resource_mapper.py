@@ -5,8 +5,8 @@ import resource
 from typing import Dict, Any
 import json
 
-from quartz.views.utils.image_utils import download_images_batch, load_image
-from quartz.views.utils.coordinate_utils import convert_geometry_from_resource
+from certificate_generator.views.utils.image_utils import download_images_batch, load_image
+from certificate_generator.views.utils.coordinate_utils import convert_geometry_from_resource
 
 class ResourceMapper:
     def __init__(self, resource_data: Dict[str, Any]):

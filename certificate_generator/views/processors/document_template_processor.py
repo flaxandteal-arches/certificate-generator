@@ -17,8 +17,8 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 
 from io import BytesIO
-from quartz.views.processors.richtext import mark2html, apply_list_indentation, apply_heading_spacing
-from quartz.views.utils.image_utils import load_image, get_image_dimensions
+from certificate_generator.views.processors.richtext import mark2html, apply_list_indentation, apply_heading_spacing
+from certificate_generator.views.utils.image_utils import load_image, get_image_dimensions
 
 
 class DocumentTemplateProcessor:

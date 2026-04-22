@@ -7,9 +7,9 @@ from pathlib import Path
 
 from docx import settings
 
-from quartz.views import document_service, resource_service
-from quartz.views.loaders.data_loader import DataLoader
-from quartz.views.template_registry import TemplateRegistry
+from certificate_generator.views import document_service, resource_service
+from certificate_generator.views.loaders.data_loader import DataLoader
+from certificate_generator.views.template_registry import TemplateRegistry
 
 class CertificateGeneratorPluginProcessTemplate(View):
     def post(self, req):
