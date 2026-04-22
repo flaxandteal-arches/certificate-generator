@@ -22,8 +22,8 @@ class CertificateGeneratorPluginView(View):
                 data = json.loads(request.body)
                 include_drafts = data.get("include_drafts", "false").lower() == "true"
                 include_archived = data.get("include_archived", "false").lower() == "true"
-            BASE_DIR = Path(__file__).parent.parent
             logger = logging.getLogger(__name__)
+            BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"
             logger.error(TEMPLATES_DIR)
             logger.error(TEMPLATES_DIR)
@@ -31,6 +31,10 @@ class CertificateGeneratorPluginView(View):
             logger.error(TEMPLATES_DIR)
             logger.error(TEMPLATES_DIR)
             logger.error(TEMPLATES_DIR)
+            logger.error(f"DEBUG contents: {list(TEMPLATES_DIR.iterdir())}")
+            logger.error(f"DEBUG contents: {list(TEMPLATES_DIR.iterdir())}")
+            logger.error(f"DEBUG contents: {list(TEMPLATES_DIR.iterdir())}")
+            logger.error(f"DEBUG contents: {list(TEMPLATES_DIR.iterdir())}")
             template_registry = TemplateRegistry(TEMPLATES_DIR)
             templates = template_registry.list_templates(
                 include_drafts=include_drafts,
