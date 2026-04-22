@@ -31,6 +31,7 @@ include = ["certificate_generator*"]
 [tool.setuptools.package-data]
 certificate_generator = [
     "report_templates/*.docx",
+    "report_templates/*.json",
     "templates/**/*",
     "media/**/*",
     "plugins/*.json",
