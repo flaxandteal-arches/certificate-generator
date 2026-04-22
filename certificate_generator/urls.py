@@ -7,7 +7,7 @@ from certificate_generator.views import (
 
 urlpatterns = [
     path(
-        "certificate-generator/",
+        "certificate-generator/templates/",
         certificate_generator_plugin_view.CertificateGeneratorPluginView.as_view(),
         name="certificate-generator",
     ),
