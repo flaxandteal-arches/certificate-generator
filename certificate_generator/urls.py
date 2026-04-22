@@ -1,0 +1,24 @@
+from django.urls import path
+from certificate_generator.views import (
+    certificate_generator_plugin_view,
+    certificate_generator_plugin_get_resources,
+    certificate_generator_plugin_process_template,
+)
+
+urlpatterns = [
+    path(
+        "certificate-generator/",
+        certificate_generator_plugin_view.CertificateGeneratorView.as_view(),
+        name="certificate-generator",
+    ),
+    path(
+        "certificate-generator/get-resources/",
+        certificate_generator_plugin_get_resources.GetResourcesView.as_view(),
+        name="certificate-generator-get-resources",
+    ),
+    path(
+        "certificate-generator/process-template/",
+        certificate_generator_plugin_process_template.ProcessTemplateView.as_view(),
+        name="certificate-generator-process-template",
+    ),
+]

@@ -1,0 +1,204 @@
+{
+  "templates": {
+    "heritage-recommendation": {
+      "display_name": "Heritage Recommendation",
+      "description": "Standard heritage recommendation certificate for listed places",
+      "category": "recommendations",
+      "legacy_ids": ["2. Heritage Recommendation", "2. Heritage Recommendation v2"],
+      "versions": [
+        {
+          "version": 1,
+          "status": "archived",
+          "filename": "heritage-recommendation_v1.docx",
+          "created_at": "2024-12-08T13:50:00Z",
+          "created_by": "initial-migration",
+          "changelog": "Original template migrated from legacy naming"
+        },
+        {
+          "version": 2,
+          "status": "archived",
+          "filename": "heritage-recommendation_v2.docx",
+          "created_at": "2025-01-27T12:23:00Z",
+          "created_by": "stuart",
+          "changelog": "Updated header layout and formatting"
+        },
+        {
+          "version": 3,
+          "status": "archived",
+          "filename": "heritage-recommendation_v3.docx",
+          "created_at": "2025-02-03T12:23:00Z",
+          "created_by": "stuart",
+          "changelog": "Added Lot on Plan field, fixed formatting issues"
+        },
+        {
+          "version": 4,
+          "status": "published",
+          "filename": "heritage-recommendation_v4.docx",
+          "created_at": "2025-02-10T12:23:00Z",
+          "created_by": "stuart",
+          "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        }
+      ]
+    },
+    "entry-qld-heritage-register": {
+      "display_name": "Entry in Queensland Heritage Register",
+      "description": "Certificate of entry into the Queensland Heritage Register",
+      "category": "certificates",
+      "legacy_ids": ["4. Entry in Queensland Heritage Register"],
+      "versions": [
+        {
+          "version": 1,
+          "status": "archived",
+          "filename": "entry-qld-heritage-register_v1.docx",
+          "created_at": "2024-12-08T11:52:00Z",
+          "created_by": "initial-migration",
+          "changelog": "Original template migrated from legacy naming"
+        },
+        {
+          "version": 2,
+          "status": "archived",
+          "filename": "entry-qld-heritage-register_v2.docx",
+          "created_at": "2026-01-29T15:14:00Z",
+          "created_by": "Stuart",
+          "changelog": "Updated to work with live data"
+        },
+        {
+          "version": 3,
+          "status": "archived",
+          "filename": "entry-qld-heritage-register_v3.docx",
+          "created_at": "2026-02-03T15:14:00Z",
+          "created_by": "Stuart",
+          "changelog": "Added Lot on Plan field, fixed formatting issues"
+        },
+        {
+          "version": 4,
+          "status": "published",
+          "filename": "entry-qld-heritage-register_v4.docx",
+          "created_at": "2026-02-10T15:48:03Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        }
+      ]
+    },
+    "heritage-recommendation-destroyed": {
+      "display_name": "Heritage Recommendation - Destroyed Place",
+      "description": "Heritage recommendation for destroyed places",
+      "category": "recommendations",
+      "legacy_ids": ["5. Heritage Recommendation_Destroyed Place"],
+      "versions": [
+        {
+          "version": 1,
+          "status": "archived",
+          "filename": "heritage-recommendation-destroyed_v1.docx",
+          "created_at": "2024-12-08T14:09:00Z",
+          "created_by": "initial-migration",
+          "changelog": "Original template migrated from legacy naming"
+        },
+        {
+          "version": 2,
+          "status": "archived",
+          "filename": "heritage-recommendation-destroyed_v2.docx",
+          "created_at": "2026-01-29T15:14:00Z",
+          "created_by": "Stuart",
+          "changelog": "Updated to work with live data"
+        },
+        {
+          "version": 3,
+          "status": "archived",
+          "filename": "heritage-recommendation-destroyed_v3.docx",
+          "created_at": "2026-02-04T15:14:00Z",
+          "created_by": "Stuart",
+          "changelog": "Added Lot on Plan field, fixed formatting issues"
+        },
+        {
+          "version": 4,
+          "status": "published",
+          "filename": "heritage-recommendation-destroyed_v4.docx",
+          "created_at": "2026-02-10T15:48:03Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        }
+      ]
+    },
+    "heritage-recommendation-vary": {
+      "display_name": "Heritage Recommendation - Vary",
+      "description": "Heritage recommendation for varying an existing entry",
+      "category": "recommendations",
+      "legacy_ids": ["6. Heritage Recommendation_vary"],
+      "versions": [
+        {
+          "version": 1,
+          "status": "archived",
+          "filename": "heritage-recommendation-vary_v1.docx",
+          "created_at": "2024-12-08T14:14:00Z",
+          "created_by": "initial-migration",
+          "changelog": "Original template migrated from legacy naming"
+        },
+        {
+          "version": 2,
+          "status": "archived",
+          "filename": "heritage-recommendation-vary_v2.docx",
+          "created_at": "2026-01-29T15:14:00Z",
+          "created_by": "Stuart",
+          "changelog": "Updated to work with live data"
+        },
+        {
+          "version": 3,
+          "status": "archived",
+          "filename": "heritage-recommendation-vary_v3.docx",
+          "created_at": "2026-02-04T15:14:00Z",
+          "created_by": "Stuart",
+          "changelog": "Added Lot on Plan field, fixed formatting issues"
+        },
+        {
+          "version": 4,
+          "status": "published",
+          "filename": "heritage-recommendation-vary_v4.docx",
+          "created_at": "2026-02-10T15:48:03Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        }
+      ]
+    },
+    "certified-copy-of-entry": {
+      "display_name": "Certified Copy of Entry",
+      "description": "Certified copy of an entry in the heritage register",
+      "category": "certificates",
+      "legacy_ids": ["3. Certified Copy of Entry"],
+      "versions": [
+        {
+          "version": 1,
+          "status": "archived",
+          "filename": "certified-copy-of-entry_v1.docx",
+          "created_at": "2024-12-08T14:14:00Z",
+          "created_by": "initial-migration",
+          "changelog": "Original template migrated from legacy naming"
+        },
+        {
+          "version": 2,
+          "status": "archived",
+          "filename": "certified-copy-of-entry_v2.docx",
+          "created_at": "2026-01-29T15:14:00Z",
+          "created_by": "Stuart",
+          "changelog": "Updated to work with live data"
+        },
+        {
+          "version": 3,
+          "status": "archived",
+          "filename": "certified-copy-of-entry_v3.docx",
+          "created_at": "2026-02-03T15:14:00Z",
+          "created_by": "Stuart",
+          "changelog": "Added Lot on Plan field, fixed formatting issues"
+        },
+        {
+          "version": 4,
+          "status": "published",
+          "filename": "certified-copy-of-entry_v4.docx",
+          "created_at": "2026-02-10T15:48:03Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+recursive-include certificate_generator/report_templates *.docx
+recursive-include certificate_generator/templates *
+recursive-include certificate_generator/media *
+recursive-include certificate_generator/plugins *      

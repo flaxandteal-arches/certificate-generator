@@ -1,0 +1,10 @@
+{
+    "pluginid": "7517ca99-689d-4840-acdf-bc65a449c30a",
+    "name": "Certificate Generator",
+    "icon": "fa fa-file",
+    "component": "views/components/plugins/certificate-generator-plugin",
+    "componentname": "certificate-generator-plugin",
+    "config": {"show": true},
+    "slug": "certificate-generator-plugin",
+    "sortorder": 0
+}

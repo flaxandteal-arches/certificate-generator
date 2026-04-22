@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arches-certificate-generator"
+version = "0.1.0"
+description = "Certificate generator plugin for Arches 8"
+requires-python = ">=3.10"
+dependencies = [
+    "beautifulsoup4==4.14.3",
+    "docxtpl==0.20.2",
+    "Jinja2==3.1.6",
+    "lxml==6.0.2",
+    "Markdown==3.10",
+    "MarkupSafe==3.0.3",
+    "pillow==12.0.0",
+    "pyproj==3.7.1",
+    "python-docx",
+    "python-dotenv==1.1.0",
+    "requests",
+    "soupsieve==2.8",
+    "typing_extensions==4.15.0",
+    "alizarin @ https://github.com/flaxandteal/alizarin/releases/download/v0.2.1-alpha.31/alizarin-0.2.1a31-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["certificate_generator*"]
+
+[tool.setuptools.package-data]
+certificate_generator = [
+    "report_templates/*.docx",
+    "templates/**/*",
+    "media/**/*",
+    "plugins/*.json",
+]
