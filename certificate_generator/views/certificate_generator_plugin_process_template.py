@@ -37,7 +37,7 @@ class CertificateGeneratorPluginProcessTemplate(View):
                 graphs_dir=base_dir / "pkg" / "graphs" / "resource_models",
             )
             resource_svc = resource_service.ResourceService(data_loader)
-            BASE_DIR = Path(__file__).parent
+            BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"
             document_service_svc = document_service.DocumentService(TemplateRegistry(TEMPLATES_DIR))
             # Business logic delegated to services
