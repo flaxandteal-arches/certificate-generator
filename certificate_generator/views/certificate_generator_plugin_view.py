@@ -22,7 +22,7 @@ class CertificateGeneratorPluginView(View):
                 data = json.loads(request.body)
                 include_drafts = data.get("include_drafts", "false").lower() == "true"
                 include_archived = data.get("include_archived", "false").lower() == "true"
-            BASE_DIR = Path(__file__).parent
+            BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"
             template_registry = TemplateRegistry(TEMPLATES_DIR)
             templates = template_registry.list_templates(
