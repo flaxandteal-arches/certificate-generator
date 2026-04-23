@@ -51,7 +51,7 @@ class DocumentService:
         Returns:
             Raw bytes of the generated .docx file.
         """
-        document_template_processor_svc = document_template_processor.DocumentTemplateProcessor(str(template_path))
+        document_template_processor_svc = document_template_processor.DocumentTemplateProcessor(str(template_path)) 
         processor = document_template_processor_svc
         processor.process_template(data)
 

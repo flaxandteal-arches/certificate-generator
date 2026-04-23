@@ -7,9 +7,9 @@ from django.views import View
 from pathlib import Path
 from docx import settings
 
-from certificate_generator.views import document_service, resource_service
+from certificate_generator.views.services import document_service, resource_service
 from certificate_generator.views.loaders.data_loader import DataLoader
-from certificate_generator.views.template_registry import TemplateRegistry
+from certificate_generator.views.registry.template_registry import TemplateRegistry
 
 class CertificateGeneratorPluginProcessTemplate(View):
     def post(self, req):

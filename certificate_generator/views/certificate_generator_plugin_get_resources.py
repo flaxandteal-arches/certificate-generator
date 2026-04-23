@@ -4,9 +4,8 @@ import logging
 from django.http import JsonResponse
 from django.views import View
 from pathlib import Path
-from certificate_generator.views import resource_service
+from certificate_generator.views.services import resource_service
 from certificate_generator.views.loaders.data_loader import DataLoader
-from certificate_generator.views.template_registry import TemplateRegistry
 
 class CertificateGeneratorPluginGetResources(View):
 

@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views import View
 from pathlib import Path
 
-from certificate_generator.views.template_registry import TemplateRegistry
+from certificate_generator.views.registry.template_registry import TemplateRegistry
 
 class CertificateGeneratorPluginView(View):
 
