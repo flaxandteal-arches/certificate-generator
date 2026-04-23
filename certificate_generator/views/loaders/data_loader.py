@@ -53,11 +53,14 @@ class DataLoader:
                 "graph_id": graph_id,
                 "tiles": tiles,
             })
+        
 
         return resource_list
     
     def load_resources(self):
         resource_list = self._register_graphs()
+        logger = logging.getLogger(__name__)
+        logger.error(f"DEBUG load_resources: {resource_list}")
         sorted_resources = sorted(resource_list, key=itemgetter('graph_id'))
         all_results = []
 
