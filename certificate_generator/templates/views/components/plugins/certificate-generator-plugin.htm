@@ -279,7 +279,7 @@
                     placeholder: 'Search resources...',
                     options: Object.values(resources).map(r => ({
                         value: r.resource_id,
-                        text: `${r.place_id} ${r.name}`
+                        text: `${r.place_id?.value} ${r.name}`
                     })),
                     searchField: ['text'],
                     maxOptions: 100,

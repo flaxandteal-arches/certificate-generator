@@ -117,7 +117,9 @@ class DataLoader:
             
             # Look up the related resource
             related_resource = all_resources.get(resource_id)
-            
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Resolving related resource: {resource_id} (alias: {alias})")
+            logger.debug(f"Related resource data: {related_resource}")
             if related_resource:
                 # Create the expanded related resource structure
                 resolved_related.append({
