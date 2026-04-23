@@ -14,27 +14,14 @@ class CertificateGeneratorPluginView(View):
 
         try:
             print('Listing available templates')
-            logger = logging.getLogger(__name__)
-            logger.error(request)
             include_drafts = False
             include_archived = False
             if request.body:
                 data = json.loads(request.body)
                 include_drafts = data.get("include_drafts", "false").lower() == "true"
                 include_archived = data.get("include_archived", "false").lower() == "true"
-            logger = logging.getLogger(__name__)
             BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"
-            logger.error(TEMPLATES_DIR)
-            logger.error(TEMPLATES_DIR)
-            logger.error(TEMPLATES_DIR)
-            logger.error(TEMPLATES_DIR)
-            logger.error(TEMPLATES_DIR)
-            logger.error(TEMPLATES_DIR)
-            logger.error(f"DEBUG contents: {list(TEMPLATES_DIR.iterdir())}")
-            logger.error(f"DEBUG contents: {list(TEMPLATES_DIR.iterdir())}")
-            logger.error(f"DEBUG contents: {list(TEMPLATES_DIR.iterdir())}")
-            logger.error(f"DEBUG contents: {list(TEMPLATES_DIR.iterdir())}")
             template_registry = TemplateRegistry(TEMPLATES_DIR)
             templates = template_registry.list_templates(
                 include_drafts=include_drafts,

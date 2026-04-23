@@ -15,10 +15,9 @@ class CertificateGeneratorPluginGetResources(View):
         logging.info('Listing available templates')
 
         try:
-            base_dir = Path(__file__).parent
             data_loader = DataLoader()
             resource_svc = resource_service.ResourceService(data_loader)
-            list_resources = data_loader.load_resources()
+            # list_resources = data_loader.load_resources()
             resource_list = resource_svc.list_resources()
             return JsonResponse({"resources": resource_list}, status=200)
 
