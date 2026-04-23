@@ -39,7 +39,7 @@ class CertificateGeneratorPluginProcessTemplate(View):
             # Business logic delegated to services
             data_loader.load_resources()
             data = resource_svc.get_mapped_resource(resource_id)
-            mapped_data = self.resolve_language(data, lang='en')
+            mapped_data = resolve_language(data, lang='en')
             logger = logging.getLogger(__name__)
             logger.error(f"Mapped resource data for {resource_id}: {mapped_data}")
             template_path = document_service_svc.resolve_template(template_id, template_version)
@@ -84,30 +84,39 @@ class CertificateGeneratorPluginProcessTemplate(View):
                 status=500
             )  
 
-    def resolve_language(self, data, lang=None, fallback_langs=('en', 'en-US', 'el', 'fr')):
-        """
-        Recursively walk a nested dict/list and replace any multilingual
-        value objects with the plain string for the current (or requested) language.
-        """
-        # Resolve language once at the top level
-        if lang is None:
-            lang = get_language() or 'en'  # e.g. 'en', 'en-us', 'fr'
+def resolve_language(data, lang=None, fallback_langs=('en', 'en-US', 'el', 'fr')):
+    if lang is None:
+        lang = get_language() or 'en'
+        lang = '-'.join(
+            part.upper() if i > 0 else part.lower()
+            for i, part in enumerate(lang.split('-'))
+        )
 
-        if isinstance(data, dict):
-            # Detect a multilingual leaf node:
-            # all values are dicts containing a 'value' key
-            if data and all(
-                isinstance(v, dict) and 'value' in v
-                for v in data.values()
-            ):
-                for candidate in (lang, *fallback_langs):
-                    if candidate in data and data[candidate]['value'] != '':
-                        return data[candidate]['value']
-                return ''
+    if isinstance(data, dict):
+        # Multilingual leaf: {'en': {'value': '...', 'direction': '...'}, ...}
+        if data and all(isinstance(v, dict) and 'value' in v for v in data.values()):
+            for candidate in (lang, *fallback_langs):
+                if candidate in data and data[candidate]['value'] != '':
+                    return data[candidate]['value']
+            return ''
 
-            return {k: self.resolve_language(v, lang, fallback_langs) for k, v in data.items()}
+        # Concept leaf: {'_': [['P', 'Primary']], 'some_metatype': [...]}
+        # The '_' key holds a list of [prefLabel_id, prefLabel_value] pairs
+        if '_' in data:
+            raw = data['_']
+            if isinstance(raw, list) and raw:
+                first = raw[0]
+                if isinstance(first, list) and len(first) == 2:
+                    # [['P', 'Primary'], ...] — return the label
+                    return first[1]
+                if isinstance(first, str):
+                    # ['Monument Name', ...] — return the string directly
+                    return first
+            return raw
 
-        if isinstance(data, list):
-            return [self.resolve_language(item, lang, fallback_langs) for item in data]
+        return {k: resolve_language(v, lang, fallback_langs) for k, v in data.items()}
 
-        return data
+    if isinstance(data, list):
+        return [resolve_language(item, lang, fallback_langs) for item in data]
+
+    return data
