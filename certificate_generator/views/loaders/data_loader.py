@@ -64,7 +64,7 @@ class DataLoader:
         sorted_resources = sorted(resource_list, key=itemgetter('graph_id'))
         all_results = []
 
-        for group in groupby(sorted_resources, key=itemgetter('graph_id')):
+        for graph_id, group in groupby(sorted_resources, key=itemgetter('graph_id')):
             group_list = list(group)
             logger.error('were in the group loop')
             logger.error(f"DEBUG GROUP LIST: {group_list}")
