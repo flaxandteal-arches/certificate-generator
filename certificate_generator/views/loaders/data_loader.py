@@ -67,6 +67,7 @@ class DataLoader:
         for group in groupby(sorted_resources, key=itemgetter('graph_id')):
             group_list = list(group)
             logger.error('were in the group loop')
+            logger.error(f"DEBUG GROUP LIST: {group_list}")
             result = alizarin.batch_tiles_to_trees(
                 json.dumps(group_list),
             )
