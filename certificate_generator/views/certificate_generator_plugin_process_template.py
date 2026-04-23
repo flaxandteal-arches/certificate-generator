@@ -39,6 +39,8 @@ class CertificateGeneratorPluginProcessTemplate(View):
             # Business logic delegated to services
             data_loader.load_resources()
             data = resource_svc.get_mapped_resource(resource_id)
+            logger = logging.getLogger(__name__)
+            logger.error(f"Mapped resource data for {resource_id}: {data}")
             template_path = document_service_svc.resolve_template(template_id, template_version)
             document_bytes = document_service_svc.generate_document(template_path, data)
 
