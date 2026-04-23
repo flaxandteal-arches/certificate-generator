@@ -1,10 +1,10 @@
 import json
 import logging
 import base64
+import datetime
 from django.http import HttpResponse, JsonResponse
 from django.views import View
 from pathlib import Path
-
 from docx import settings
 
 from certificate_generator.views import document_service, resource_service
@@ -45,9 +45,8 @@ class CertificateGeneratorPluginProcessTemplate(View):
             # Build response filename
             version = int(template_version) if template_version is not None else None
             version_suffix = f"_v{version}" if version else ""
-            # timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            # filename = f"{resource_name}_{template_id}_{version_suffix}_{timestamp}.docx"
-            filename = "test.docx"
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{resource_name}_{template_id}_{version_suffix}_{timestamp}.docx"
 
             response = HttpResponse(
                 document_bytes,
