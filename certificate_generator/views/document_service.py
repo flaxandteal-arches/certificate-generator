@@ -11,7 +11,6 @@ from typing import Any, Dict, Optional
 from certificate_generator.views.processors import document_template_processor
 from certificate_generator.views.registry import TemplateRegistry
 
-
 class DocumentService:
 
     def __init__(self, template_registry: TemplateRegistry):
@@ -54,8 +53,6 @@ class DocumentService:
         """
         document_template_processor_svc = document_template_processor.DocumentTemplateProcessor(str(template_path))
         processor = document_template_processor_svc
-        logger = logging.getLogger(__name__)
-        # logger.error("Data for template processing: %s", data)
         processor.process_template(data)
 
         with tempfile.NamedTemporaryFile(mode='wb', suffix='.docx', delete=False) as tmp:

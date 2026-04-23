@@ -2,14 +2,10 @@
 Resource service - business logic for loading and listing resources.
 """
 
-import logging
 from typing import Any, Dict, List
 
 from certificate_generator.views.loaders import DataLoader
 from certificate_generator.views.mappers import ResourceMapper
-from arches.app.models.models import ResourceInstance
-
-
 class ResourceService:
 
     def __init__(self, data_loader: DataLoader):

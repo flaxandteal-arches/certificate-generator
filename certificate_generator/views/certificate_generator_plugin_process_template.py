@@ -31,11 +31,7 @@ class CertificateGeneratorPluginProcessTemplate(View):
                     status_code=400
                 )
 
-            base_dir = Path(__file__).parent
-            data_loader = DataLoader(
-                resource_file=base_dir / "t_output_df_only_1.json",
-                graphs_dir=base_dir / "pkg" / "graphs" / "resource_models",
-            )
+            data_loader = DataLoader()
             resource_svc = resource_service.ResourceService(data_loader)
             BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"

@@ -6,7 +6,6 @@ using docxtpl (python-docx-template) for Jinja2 templating.
 
 import html as html_module
 import json
-import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional

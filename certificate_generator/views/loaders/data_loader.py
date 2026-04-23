@@ -12,31 +12,12 @@ from operator import itemgetter
 class DataLoader:
     """Utility class for loading resource data"""
 
-    def __init__(self, resource_file: Path, graphs_dir: Path):
-        self.resources_file = Path(resource_file)
-        self.graphs_dir = Path(graphs_dir)
+    def __init__(self):
         self._resources: Dict[str, Dict[str, Any]] | None = None
 
     def _register_graphs(self):
-        """Register all graph JSON files in the given directory."""
-        graph_ids = {}
-        for file_path in self.graphs_dir.glob("*.json"):
-            with open(file_path) as f:
-                graph_data = json.load(f)
-                graph_json = json.dumps(graph_data['graph'][0])
-            graph_id = alizarin.register_graph(graph_json)
-            graph_ids[file_path.stem] = graph_id
-        return graph_ids
-    
-    def load_resources(self):
+        """Register all graphs that are marked as resources and build the resource list"""
         resource_list = []
-        # for graph in Graph.objects.filter(isresource=True):
-        #     logger = logging.getLogger(__name__)
-        #     serialized = graph.serialize()
-        #     graph_json = json.dumps({"graph": [serialized]})
-        #     graph_id = alizarin.register_graph(graph_json)
-        #     logger.error(f"Found resource: {graph}")
-
         graphs_processed = {}
 
         for r in ResourceInstance.objects.filter(graph__isresource=True):
@@ -72,19 +53,17 @@ class DataLoader:
                 "graph_id": graph_id,
                 "tiles": tiles,
             })
-        all_results = []
+
+        return resource_list
+    
+    def load_resources(self):
+        resource_list = self._register_graphs()
         sorted_resources = sorted(resource_list, key=itemgetter('graph_id'))
+        all_results = []
 
-        for graph_id, group in groupby(sorted_resources, key=itemgetter('graph_id')):
+        for group in groupby(sorted_resources, key=itemgetter('graph_id')):
             group_list = list(group)
-            static_graph = graphs_processed[graph_id]
             
-            # result = alizarin.batch_tiles_to_trees(
-            #     resources_json=json.dumps(group_list),
-            #     graph=static_graph,
-            #     strict=False,
-            # )
-
             result = alizarin.batch_tiles_to_trees(
                 json.dumps(group_list),
             )
@@ -96,37 +75,7 @@ class DataLoader:
         self._resources = mapped_resources
         logging.info("Loaded %d resources", len(mapped_resources))
         return mapped_resources
-        # for r in ResourceInstance.objects.filter(graph__isresource=True):
-        #     logger = logging.getLogger(__name__)
-        #     logger.error("test")
-        #     logger.error("test")
-        #     logger.error("test")
-        #     logger.error("test")
-        #     logger.error("test")
-        #     logger.error("test")
-        #     logger.error("test")
-        #     logger.error("test")
-        #     logger.error(f"Found resource: {r.__dict__}")
-        #     logger.error(f"Found resource: {r._meta.get_fields()}")
-        #     resource_list.append({
-        #         "resource_id": str(r.resourceinstanceid),
-        #         "resourceinstanceid": str(r.resourceinstanceid),
-        #         "graph_id": str(r.graph_id),
-        #         "_name": str(r.name),
-        #     })
- 
 
-        # result = alizarin.batch_tiles_to_trees(
-        #     resources_json=json.dumps(resource_list)
-        # )
-
-        # logger.error(f"Alizarined resource: {result}")
-            
-        # results = result['results']        
-        # mapped_resources = {r["resourceinstanceid"]: r for r in results}
-        # self._resources = mapped_resources
-        # logging.info("Loaded %d resources", len(mapped_resources))
-        # return mapped_resources
     
     def get_resource(self, resource_id: str) -> Dict[str, Any]:
         """Get a single resource by its resourceinstanceid"""

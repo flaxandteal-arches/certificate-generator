@@ -258,7 +258,6 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script>
-        console.log('Certificate Generator Plugin loaded');
         // Configuration
         const API_BASE = window.location.origin;
 
@@ -274,7 +273,6 @@
                 const data = await response.json();
                 
                 resources = data.resources;
-                console.log('Resources:', resources);
 
                 // Initialize Tom Select with the loaded resources
                 resourceSelect = new TomSelect('#resourceSelect', {
@@ -287,8 +285,6 @@
                     maxOptions: 100,
                     onChange: updateResourceMeta
                 });
-                console.log(Object.values(resources));
-                console.log(resourceSelect.options);
 
             } catch (error) {
                 console.error('Error loading resources:', error);
@@ -304,7 +300,6 @@
                 if (showAll) {
                     params.set('include_archived', 'true');
                 }
-                console.log('Loading templates with params:', params);
 
                 const response = await fetch(`${API_BASE}/certificate-generator/templates?${params}`);
                 const data = await response.json();
@@ -449,7 +444,6 @@
                 
                 // Get the blob and trigger download
                 const blob = await response.blob();
-                console.log(blob);
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -469,7 +463,6 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                console.log('Document generated and download triggered:', filename);
                 showMessage(`✓ Document generated successfully: ${filename}`, 'success');
                 
             } catch (error) {
@@ -510,12 +503,8 @@
             }
         }
         
-        // // Initialize
-        // document.addEventListener('DOMContentLoaded', () => {
-            console.log('Initializing Certificate Generator Plugin');
-            loadResources();
-            loadTemplates();
-        // });
+        loadResources();
+        loadTemplates();
     </script>
 </body>
 </html>

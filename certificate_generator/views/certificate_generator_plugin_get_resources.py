@@ -16,10 +16,7 @@ class CertificateGeneratorPluginGetResources(View):
 
         try:
             base_dir = Path(__file__).parent
-            data_loader = DataLoader(
-                resource_file=base_dir / "t_output_df_only_1.json",
-                graphs_dir=base_dir / "pkg" / "graphs" / "resource_models",
-            )
+            data_loader = DataLoader()
             resource_svc = resource_service.ResourceService(data_loader)
             list_resources = data_loader.load_resources()
             resource_list = resource_svc.list_resources()
