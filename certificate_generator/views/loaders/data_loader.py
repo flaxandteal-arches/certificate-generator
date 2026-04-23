@@ -71,8 +71,6 @@ class DataLoader:
             if result.get('success') or result.get('results'):
                 all_results.extend(result['results'])
 
-        logger = logging.getLogger(__name__)
-        logger.debug(f"Resource data: {all_results}")
         mapped_resources = {r["resourceinstanceid"]: r for r in all_results}
         self._resources = mapped_resources
         logging.info("Loaded %d resources", len(mapped_resources))

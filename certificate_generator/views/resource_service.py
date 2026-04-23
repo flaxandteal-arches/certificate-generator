@@ -16,6 +16,8 @@ class ResourceService:
         """Return a summary list of all available resources."""
         all_resources = self.data_loader.get_all_resources()
         resources = []
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Resource data: {all_resources}")
         for resource_id, resource_data in all_resources.items():
             resources.append({
                 "resource_id": resource_id,
