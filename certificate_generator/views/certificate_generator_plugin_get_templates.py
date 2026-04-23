@@ -6,7 +6,7 @@ from pathlib import Path
 
 from certificate_generator.views.registry.template_registry import TemplateRegistry
 
-class CertificateGeneratorPluginView(View):
+class CertificateGeneratorPluginGetTemplates(View):
 
     def get(self, request):
         """List available document templates with version info"""
