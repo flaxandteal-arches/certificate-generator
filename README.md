@@ -29,8 +29,8 @@ Then reinstall your project dependencies:
 ```bash
 pip install -e .
 ```
-
 or rebuild your project in the way you usually rebuild after adding a dependency.
+
 ---
 
 ## Configuration
