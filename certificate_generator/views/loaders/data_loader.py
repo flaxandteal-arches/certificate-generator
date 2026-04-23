@@ -66,10 +66,12 @@ class DataLoader:
 
         for group in groupby(sorted_resources, key=itemgetter('graph_id')):
             group_list = list(group)
-            
+            logger.error('were in the group loop')
             result = alizarin.batch_tiles_to_trees(
                 json.dumps(group_list),
             )
+
+            logger.error('we got the result')
             
             if result.get('success') or result.get('results'):
                 all_results.extend(result['results'])
@@ -77,6 +79,7 @@ class DataLoader:
         mapped_resources = {r["resourceinstanceid"]: r for r in all_results}
         self._resources = mapped_resources
         logging.info("Loaded %d resources", len(mapped_resources))
+        logger.error('going to return mapped resources')
         return mapped_resources
 
     
