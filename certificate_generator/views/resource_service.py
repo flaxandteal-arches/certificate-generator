@@ -16,25 +16,17 @@ class ResourceService:
         """Return a summary list of all available resources."""
         all_resources = self.data_loader.get_all_resources()
         resources = []
-        logger = logging.getLogger(__name__)
-        logger.error(f"Resource data: {all_resources}")
-        logger.error(f"Resource data: {all_resources}")
-        logger.error(f"Resource data: {all_resources}")
-        logger.error(f"Resource data: {all_resources}")
-        logger.error(f"Resource data: {all_resources}")
-        logger.error(f"Resource data: {all_resources}")
-        logger.error(f"Resource data: {all_resources}")
-        logger.error(f"Resource data: {all_resources}")
         for resource_id, resource_data in all_resources.items():
-            resources.append({
-                "resource_id": resource_id,
-                "place_id": resource_data.get("system_reference_numbers", {}).get("uuid", {}).get("resourceid", {}).get("en", ""),
-                "name": resource_data.get("_name", resource_id),
-                "resourceinstanceid": resource_data.get("resourceinstance", {}).get("resourceinstanceid", ""),
-                "graph_id": resource_data.get("graph_id", ""),
-                "graph_name": resource_data.get("graph_id", ""),
-                "fields_count": len(resource_data.keys()),
-            })
+            if "_name" in resource_data:
+                resources.append({
+                    "resource_id": resource_id,
+                    "place_id": resource_data.get("system_reference_numbers", {}).get("uuid", {}).get("resourceid", {}).get("en", ""),
+                    "name": resource_data.get("_name", resource_id),
+                    "resourceinstanceid": resource_data.get("resourceinstance", {}).get("resourceinstanceid", ""),
+                    "graph_id": resource_data.get("graph_id", ""),
+                    "graph_name": resource_data.get("graph_id", ""),
+                    "fields_count": len(resource_data.keys()),
+                })
 
         return resources
 

@@ -17,14 +17,7 @@ class CertificateGeneratorPluginGetResources(View):
             data_loader = DataLoader()
             resource_svc = resource_service.ResourceService(data_loader)
             data_loader.load_resources()
-            logger = logging.getLogger(__name__)
             resource_list = resource_svc.list_resources()
-            logger.error("Got the data")
-            logger.error("Got the data")
-            logger.error("Got the data")
-            logger.error("Got the data")
-            logger.error("Got the data")
-            logger.error("Got the data")
             return JsonResponse({"resources": resource_list}, status=200)
 
 
