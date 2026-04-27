@@ -1,6 +1,5 @@
 import json
 import logging
-import base64
 import datetime
 from django.http import HttpResponse, JsonResponse
 from django.views import View
@@ -40,8 +39,6 @@ class CertificateGeneratorPluginProcessTemplate(View):
             data_loader.load_resources()
             data = resource_svc.get_mapped_resource(resource_id)
             mapped_data = resolve_language(data, lang='en')
-            logger = logging.getLogger(__name__)
-            logger.error(f"Mapped resource data for {resource_id}: {mapped_data}")
             template_path = document_service_svc.resolve_template(template_id, template_version)
             document_bytes = document_service_svc.generate_document(template_path, mapped_data)
 
