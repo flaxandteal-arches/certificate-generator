@@ -1,0 +1,202 @@
+.cert-gen-container {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 100%;
+    padding: 40px;
+    margin: 40px auto;
+    font-family: "Open Sans", "Helvetica Neue", "Helvetica", sans-serif;
+    height: fit-content;
+}
+
+.cert-gen-container * {
+    box-sizing: border-box;
+}
+
+.cert-gen-container h1 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.cert-gen-container .subtitle {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+
+.cert-gen-container .form-group {
+    margin-bottom: 25px;
+}
+
+.cert-gen-container label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.cert-gen-container select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 2px;
+    font-size: 15px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.cert-gen-container select:hover {
+    border-color: #667eea;
+}
+
+.cert-gen-container select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.cert-gen-container .info-box {
+    background: #f8f9fa;
+    border-left: 4px solid #667eea;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.cert-gen-container .config-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.cert-gen-container .config-section h3 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.cert-gen-container .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cert-gen-container .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cert-gen-container .checkbox-item--spaced {
+    margin-top: 8px;
+}
+
+.cert-gen-container .checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.cert-gen-container .checkbox-item label {
+    margin: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.cert-gen-container button {
+    width: 100%;
+    padding: 14px 24px;
+    background: #65a6de;
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cert-gen-container button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.cert-gen-container button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.cert-gen-container button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.cert-gen-container .status-message {
+    margin-top: 20px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: none;
+}
+
+.cert-gen-container .status-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.cert-gen-container .status-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.cert-gen-container .status-message.info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.cert-gen-container .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: cert-gen-spin 0.8s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes cert-gen-spin {
+    to { transform: rotate(360deg); }
+}
+
+.cert-gen-container .metadata {
+    font-size: 12px;
+    color: #999;
+    margin-top: 5px;
+}
+
+/* Tom Select styling to match form */
+.cert-gen-container .ts-wrapper.single .ts-control {
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 2px;
+    font-size: 15px;
+}
+
+.cert-gen-container .ts-wrapper.single .ts-control:hover {
+    border-color: #667eea;
+}
+
+.cert-gen-container .ts-wrapper.single.focus .ts-control {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
