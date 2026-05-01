@@ -14,12 +14,8 @@ class CertificateGeneratorPluginGetTemplates(View):
 
         try:
             print('Listing available templates')
-            include_drafts = False
-            include_archived = False
-            if request.body:
-                data = json.loads(request.body)
-                include_drafts = data.get("include_drafts", "false").lower() == "true"
-                include_archived = data.get("include_archived", "false").lower() == "true"
+            include_drafts = request.GET.get("include_drafts", "false").lower() == "true"
+            include_archived = request.GET.get("include_archived", "false").lower() == "true"
             BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"
             template_registry = TemplateRegistry(TEMPLATES_DIR)
