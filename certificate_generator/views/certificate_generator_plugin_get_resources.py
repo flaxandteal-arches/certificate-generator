@@ -12,12 +12,15 @@ out of the system_reference_numbers tile's JSONB data column.
 
 import logging
 
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import OuterRef, Subquery
 from django.db.models.fields.json import KT
 from django.http import JsonResponse
 from django.views import View
 
 from arches.app.models.models import ResourceInstance, TileModel
+
+logger = logging.getLogger(__name__)
 
 
 # Heritage Item graph
@@ -30,7 +33,7 @@ SYSTEM_REF_NODEGROUP_ID = "325a2f2f-efe4-11eb-9b0c-a87eeabdefba"
 PRIMARY_REF_NUMBER_NODE_ID = "325a2f33-efe4-11eb-b0bb-a87eeabdefba"
 
 
-class CertificateGeneratorPluginGetResources(View):
+class CertificateGeneratorPluginGetResources(LoginRequiredMixin, View):
     def get(self, request):
         try:
             place_id_sq = (
@@ -64,6 +67,6 @@ class CertificateGeneratorPluginGetResources(View):
             ]
             return JsonResponse({"resources": resources}, status=200)
 
-        except Exception as e:
-            logging.exception("Error listing resources")
-            return JsonResponse({"error": str(e)}, status=500)
+        except Exception:
+            logger.exception("Error listing resources")
+            return JsonResponse({"error": "Internal server error"}, status=500)

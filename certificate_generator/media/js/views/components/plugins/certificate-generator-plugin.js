@@ -65,29 +65,45 @@ function ViewModel() {
             self.templates = data.templates || [];
 
             const select = document.getElementById("templateSelect");
+            select.innerHTML = "";
+
             if (self.templates.length === 0) {
-                select.innerHTML = '<option value="">No templates available</option>';
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = "No templates available";
+                select.appendChild(opt);
                 return;
             }
 
-            let html = '<option value="">-- Select a template --</option>';
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "-- Select a template --";
+            select.appendChild(placeholder);
+
+            const makeOption = (value, text) => {
+                const opt = document.createElement("option");
+                opt.value = value;
+                opt.textContent = text;
+                return opt;
+            };
+
             for (const t of self.templates) {
                 if (showAll && t.versions.length > 1) {
-                    html += `<optgroup label="${t.name}">`;
+                    const group = document.createElement("optgroup");
+                    group.label = t.name;
                     for (const v of t.versions) {
                         const label = `v${v.version} (${v.status})`;
                         const desc = v.changelog ? ` - ${v.changelog.substring(0, 50)}` : "";
-                        html += `<option value="${t.id}:${v.version}">${label}${desc}</option>`;
+                        group.appendChild(makeOption(`${t.id}:${v.version}`, label + desc));
                     }
-                    html += "</optgroup>";
+                    select.appendChild(group);
                 } else {
                     const pv = t.published_version;
                     const vLabel = pv ? ` (v${pv.version})` : "";
                     const value = pv ? `${t.id}:${pv.version}` : t.id;
-                    html += `<option value="${value}">${t.name}${vLabel}</option>`;
+                    select.appendChild(makeOption(value, `${t.name}${vLabel}`));
                 }
             }
-            select.innerHTML = html;
         } catch (error) {
             console.error("Error loading templates:", error);
             self.showMessage("Failed to load templates: " + error.message, "error");
@@ -97,7 +113,7 @@ function ViewModel() {
     self.updateTemplateMeta = function(value) {
         const metaDiv = document.getElementById("templateMeta");
         if (!value) {
-            metaDiv.innerHTML = "";
+            metaDiv.replaceChildren();
             return;
         }
 
@@ -119,10 +135,19 @@ function ViewModel() {
         if (ver) {
             const sizeKB = (ver.size / 1024).toFixed(1);
             const date = new Date(ver.created_at).toLocaleDateString();
-            metaDiv.innerHTML =
-                `<strong>v${ver.version}</strong> (${ver.status}) | ` +
-                `Size: ${sizeKB} KB | By: ${ver.created_by} | ${date}<br>` +
-                `<em>${ver.changelog}</em>`;
+            metaDiv.replaceChildren();
+
+            const strong = document.createElement("strong");
+            strong.textContent = `v${ver.version}`;
+            metaDiv.appendChild(strong);
+            metaDiv.appendChild(document.createTextNode(
+                ` (${ver.status}) | Size: ${sizeKB} KB | By: ${ver.created_by} | ${date}`
+            ));
+            metaDiv.appendChild(document.createElement("br"));
+
+            const em = document.createElement("em");
+            em.textContent = ver.changelog || "";
+            metaDiv.appendChild(em);
         }
     };
 
