@@ -1,7 +1,9 @@
-import html as html_module
+import re
+
 import markdown
 from bs4 import BeautifulSoup
-from docxtpl import RichText as BaseRichText, InlineImage
+from docx.shared import Pt, Twips
+from docxtpl import RichText as BaseRichText
 
 FONT = 'Noto Sans'
 # Invisible markers prefixed to heading paragraphs so the post-render step
@@ -227,9 +229,6 @@ def apply_list_indentation(doc):
     Args:
         doc: A DocxTemplate instance (after render).
     """
-    import re
-    from docx.shared import Twips
-
     pattern = re.compile(r'^(\t+)(●|\d+\.)\t')
 
     def _fix(paragraphs):
@@ -270,9 +269,6 @@ def apply_heading_spacing(doc):
     Args:
         doc: A DocxTemplate instance (after render).
     """
-    import re
-    from docx.shared import Pt
-
     # Build a lookup: marker text -> heading level config
     # space_before in points for each heading level
     heading_config = {
@@ -400,9 +396,11 @@ def parseHtmlToDoc(org_tag, level=0, numbered=False, font_size=None):
                     source.add(con.contents[0], bold=True, font=FONT, size=font_size)
                     pars.append(source)
             elif tag.name == 'img':
-                source = tag['src']
-                imagen = InlineImage(doc, settings.MEDIA_ROOT+source)
-                pars.append(imagen)
+                # Inline images in markdown blobs aren't supported here: this
+                # parser has no DocxTemplate reference and InlineImage requires
+                # one. Templates that need an image should use a dedicated
+                # context key + the to_image filter instead.
+                continue
             elif tag.name == 'em':
                 # Append italic text to existing RichText or create new one
                 if len(pars) > 0 and isinstance(pars[-1], RichText):

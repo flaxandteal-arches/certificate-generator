@@ -1,35 +1,54 @@
+import datetime
 import json
 import logging
-import datetime
+import re
+
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, JsonResponse
 from django.views import View
 from pathlib import Path
-from docx import settings
 from django.utils.translation import get_language
 from certificate_generator.views.services import document_service
 from certificate_generator.views.loaders import ResourceLoader
 from certificate_generator.views.mappers import ResourceMapper
 from certificate_generator.views.registry.template_registry import TemplateRegistry
 
-class CertificateGeneratorPluginProcessTemplate(View):
+logger = logging.getLogger(__name__)
+
+
+class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
     def post(self, req):
         """Process a document template with resource data"""
-        logging.info('Processing document template')
+        logger.info('Processing document template')
 
         try:
-            if req.body:
-                req_body = json.loads(req.body)
-                resource_id = req_body.get('resource_id')
-                resource_name = req_body.get('resource_name')
-                template_id = req_body.get('template_id')
-                template_version = req_body.get('template_version')
+            if not req.body:
+                return JsonResponse(
+                    {"error": "Missing request body"},
+                    status=400,
+                )
+
+            req_body = json.loads(req.body)
+            resource_id = req_body.get('resource_id')
+            resource_name = req_body.get('resource_name')
+            template_id = req_body.get('template_id')
+            template_version = req_body.get('template_version')
 
             if not resource_id or not template_id:
                 return JsonResponse(
-                    json.dumps({"error": "Missing required fields: resource_id and template_id"}),
-                    mimetype="application/json",
-                    status_code=400
+                    {"error": "Missing required fields: resource_id and template_id"},
+                    status=400,
                 )
+
+            version = None
+            if template_version is not None and template_version != "":
+                try:
+                    version = int(template_version)
+                except (TypeError, ValueError):
+                    return JsonResponse(
+                        {"error": "template_version must be an integer"},
+                        status=400,
+                    )
 
             BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"
@@ -41,14 +60,16 @@ class CertificateGeneratorPluginProcessTemplate(View):
             resource_tree = ResourceLoader().load(resource_id)
             data = ResourceMapper(resource_tree).load_resource()
             mapped_data = resolve_language(data, lang='en')
-            template_path = document_service_svc.resolve_template(template_id, template_version)
+            template_path = document_service_svc.resolve_template(template_id, version)
             document_bytes = document_service_svc.generate_document(template_path, mapped_data)
 
-            # Build response filename
-            version = int(template_version) if template_version is not None else None
-            version_suffix = f"_v{version}" if version else ""
+            # Build response filename. Sanitize the client-supplied resource
+            # name so it can't inject Content-Disposition headers or path
+            # separators.
+            safe_name = re.sub(r'[^\w\-. ]+', '_', (resource_name or '')).strip() or 'document'
+            version_suffix = f"_v{version}" if version is not None else ""
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{resource_name}_{template_id}_{version_suffix}_{timestamp}.docx"
+            filename = f"{safe_name}_{template_id}{version_suffix}_{timestamp}.docx"
 
             response = HttpResponse(
                 document_bytes,
@@ -58,30 +79,25 @@ class CertificateGeneratorPluginProcessTemplate(View):
             return response
 
         except KeyError as e:
-            return JsonResponse(
-                {"error": str(e)},
-                status=404
-            )
+            return JsonResponse({"error": str(e)}, status=404)
 
         except FileNotFoundError as e:
+            return JsonResponse({"error": str(e)}, status=404)
+
+        except json.JSONDecodeError as e:
+            logger.error("Invalid JSON in request body: %s", e)
             return JsonResponse(
-                {"error": str(e)},
-                status=404
+                {"error": "Invalid JSON in request body"},
+                status=400,
             )
 
-        except ValueError as e:
-            logging.error(f"Invalid JSON in request body: {e}")
+        except Exception:
+            logger.exception("Error processing template")
             return JsonResponse(
-                {"error": "Invalid JSON in request body", "details": str(e)},
-                status=400
+                {"error": "Internal server error"},
+                status=500,
             )
 
-        except Exception as e:
-            logging.error(f"Error processing template: {e}", exc_info=True)
-            return JsonResponse(
-                {"error": "Internal server error", "details": str(e)},
-                status=500
-            )  
 
 def resolve_language(data, lang=None, fallback_langs=('en', 'en-US', 'el', 'fr')):
     if lang is None:
@@ -106,10 +122,8 @@ def resolve_language(data, lang=None, fallback_langs=('en', 'en-US', 'el', 'fr')
             if isinstance(raw, list) and raw:
                 first = raw[0]
                 if isinstance(first, list) and len(first) == 2:
-                    # [['P', 'Primary'], ...] — return the label
                     return first[1]
                 if isinstance(first, str):
-                    # ['Monument Name', ...] — return the string directly
                     return first
             return raw
 
