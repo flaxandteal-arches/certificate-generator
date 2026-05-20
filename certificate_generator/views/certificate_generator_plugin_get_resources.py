@@ -23,11 +23,11 @@ from arches.app.models.models import ResourceInstance, TileModel
 # Heritage Item graph
 HERITAGE_ITEM_GRAPH_ID = "076f9381-7b00-11e9-8d6b-80000b44d1d9"
 
-# system_reference_numbers nodegroup → resourceid node (string datatype).
-# TileModel.data is keyed by node UUID; string values are stored as
-# {"en": {"value": "...", "direction": "ltr"}}.
+# system_reference_numbers nodegroup → primary_reference_number node
+# (number datatype). TileModel.data is keyed by node UUID; the number is
+# stored as the bare JSON value, not wrapped in an i18n object.
 SYSTEM_REF_NODEGROUP_ID = "325a2f2f-efe4-11eb-9b0c-a87eeabdefba"
-RESOURCEID_NODE_ID = "325a430a-efe4-11eb-810b-a87eeabdefba"
+PRIMARY_REF_NUMBER_NODE_ID = "325a2f33-efe4-11eb-b0bb-a87eeabdefba"
 
 
 class CertificateGeneratorPluginGetResources(View):
@@ -39,7 +39,7 @@ class CertificateGeneratorPluginGetResources(View):
                     resourceinstance_id=OuterRef("pk"),
                     nodegroup_id=SYSTEM_REF_NODEGROUP_ID,
                 )
-                .annotate(place_id=KT(f"data__{RESOURCEID_NODE_ID}__en__value"))
+                .annotate(place_id=KT(f"data__{PRIMARY_REF_NUMBER_NODE_ID}"))
                 .values("place_id")[:1]
             )
 
