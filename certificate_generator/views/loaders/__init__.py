@@ -2,6 +2,6 @@
 Data Loader Package - Handles loading and caching resource data from Arches exports.
 """
 
-from .data_loader import DataLoader
+from .resource_loader import ResourceLoader
 
-__all__ = ["DataLoader"]
+__all__ = ["ResourceLoader"]

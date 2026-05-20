@@ -46,7 +46,7 @@ class DocumentService:
 
         Args:
             template_path: Resolved path to the .docx template.
-            data: Mapped resource data (output of ResourceService.get_mapped_resource).
+            data: Mapped resource data (output of ResourceMapper.load_resource).
 
         Returns:
             Raw bytes of the generated .docx file.

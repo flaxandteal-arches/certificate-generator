@@ -6,8 +6,9 @@ from django.views import View
 from pathlib import Path
 from docx import settings
 from django.utils.translation import get_language
-from certificate_generator.views.services import document_service, resource_service
-from certificate_generator.views.loaders.data_loader import DataLoader
+from certificate_generator.views.services import document_service
+from certificate_generator.views.loaders import ResourceLoader
+from certificate_generator.views.mappers import ResourceMapper
 from certificate_generator.views.registry.template_registry import TemplateRegistry
 
 class CertificateGeneratorPluginProcessTemplate(View):
@@ -30,14 +31,15 @@ class CertificateGeneratorPluginProcessTemplate(View):
                     status_code=400
                 )
 
-            data_loader = DataLoader()
-            resource_svc = resource_service.ResourceService(data_loader)
             BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"
             document_service_svc = document_service.DocumentService(TemplateRegistry(TEMPLATES_DIR))
-            # Business logic delegated to services
-            data_loader.load_resources()
-            data = resource_svc.get_mapped_resource(resource_id)
+
+            # Fetch + convert only the selected resource via the Arches ORM
+            # and alizarin.tiles_to_json_tree, instead of batch-converting the
+            # whole DB.
+            resource_tree = ResourceLoader().load(resource_id)
+            data = ResourceMapper(resource_tree).load_resource()
             mapped_data = resolve_language(data, lang='en')
             template_path = document_service_svc.resolve_template(template_id, template_version)
             document_bytes = document_service_svc.generate_document(template_path, mapped_data)
