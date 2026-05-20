@@ -24,8 +24,12 @@ class ResourceMapper:
         """
         def extract_values(data: Any) -> Any:
             if isinstance(data, dict):
+                # Arches i18n string leaf: {"value": "...", "direction": "ltr"}
+                if 'value' in data and 'direction' in data:
+                    return data['value']
+                # Language map: {"en": {"value": ..., "direction": ...}, ...}
                 if 'en' in data and len(data) == 1:
-                    return data['en']
+                    return extract_values(data['en'])
                 elif 'labels' in data:
                     labels = data.get('labels', [])
                     labels_list = [label.get('value') for label in labels]
@@ -40,7 +44,7 @@ class ResourceMapper:
 
         self.mapped_data = extract_values(self.resource_data)
 
-        print("Mapped data after initial extraction:", self.mapped_data)
+        print("QQ Mapped data after initial extraction:", self.mapped_data)
 
         # Additional mappings
         self._map_images(self.mapped_data)
@@ -83,7 +87,7 @@ class ResourceMapper:
             visibility = image.get('visibility', [])
             name = meta.get('name', '').lower()
             url = image.get('preview', [{}])[0].get('url', '')
-            alt_text = meta.get('alt_text', '')
+            alt_text = meta.get('altText') or meta.get('alt_text') or ''
             type = meta.get('type', '')
             if type and type.startswith('video/'):
                 continue  # Skip videos
@@ -169,15 +173,16 @@ class ResourceMapper:
         resource['address'] = {'street': '', 'town': '', 'county': '', 'postcode': ''}
         for addr in addresses:
             street = addr.get('street', {}).get('street_value', '')
-            county = addr.get('county', {}).get('county_value', '')
+            lga = (addr.get('lga') or [''])[0]
+            town = (addr.get('suburbs') or [''])[0]
             if street:
                 resource['address'] = {
                     'street': street,
-                    'town': addr.get('town_or_city', {}).get('town_or_city_value', ''),
+                    'town': town,
                     'postcode': addr.get('postcode', {}).get('postcode_value', ''),
                 }
-            if county:
-                resource['address']['county'] = county
+            if lga:
+                resource['address']['county'] = lga
         return resource 
     
     def _map_lot_on_plan(self, resource: Dict[str, Any]) -> Dict[str, Any]:

@@ -4,7 +4,10 @@
       "display_name": "Heritage Recommendation",
       "description": "Standard heritage recommendation certificate for listed places",
       "category": "recommendations",
-      "legacy_ids": ["2. Heritage Recommendation", "2. Heritage Recommendation v2"],
+      "legacy_ids": [
+        "2. Heritage Recommendation",
+        "2. Heritage Recommendation v2"
+      ],
       "versions": [
         {
           "version": 1,
@@ -32,11 +35,19 @@
         },
         {
           "version": 4,
-          "status": "published",
+          "status": "archived",
           "filename": "heritage-recommendation_v4.docx",
           "created_at": "2025-02-10T12:23:00Z",
           "created_by": "stuart",
           "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        },
+        {
+          "version": 5,
+          "status": "published",
+          "filename": "heritage-recommendation_v5.docx",
+          "created_at": "2026-05-19T16:11:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
         }
       ]
     },
@@ -44,7 +55,9 @@
       "display_name": "Entry in Queensland Heritage Register",
       "description": "Certificate of entry into the Queensland Heritage Register",
       "category": "certificates",
-      "legacy_ids": ["4. Entry in Queensland Heritage Register"],
+      "legacy_ids": [
+        "4. Entry in Queensland Heritage Register"
+      ],
       "versions": [
         {
           "version": 1,
@@ -72,11 +85,19 @@
         },
         {
           "version": 4,
-          "status": "published",
+          "status": "archived",
           "filename": "entry-qld-heritage-register_v4.docx",
           "created_at": "2026-02-10T15:48:03Z",
           "created_by": "Stuart",
           "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        },
+        {
+          "version": 5,
+          "status": "published",
+          "filename": "entry-qld-heritage-register_v5.docx",
+          "created_at": "2026-05-19T16:11:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
         }
       ]
     },
@@ -84,7 +105,9 @@
       "display_name": "Heritage Recommendation - Destroyed Place",
       "description": "Heritage recommendation for destroyed places",
       "category": "recommendations",
-      "legacy_ids": ["5. Heritage Recommendation_Destroyed Place"],
+      "legacy_ids": [
+        "5. Heritage Recommendation_Destroyed Place"
+      ],
       "versions": [
         {
           "version": 1,
@@ -112,11 +135,19 @@
         },
         {
           "version": 4,
-          "status": "published",
+          "status": "archived",
           "filename": "heritage-recommendation-destroyed_v4.docx",
           "created_at": "2026-02-10T15:48:03Z",
           "created_by": "Stuart",
           "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        },
+        {
+          "version": 5,
+          "status": "published",
+          "filename": "heritage-recommendation-destroyed_v5.docx",
+          "created_at": "2026-05-19T16:11:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
         }
       ]
     },
@@ -124,7 +155,9 @@
       "display_name": "Heritage Recommendation - Vary",
       "description": "Heritage recommendation for varying an existing entry",
       "category": "recommendations",
-      "legacy_ids": ["6. Heritage Recommendation_vary"],
+      "legacy_ids": [
+        "6. Heritage Recommendation_vary"
+      ],
       "versions": [
         {
           "version": 1,
@@ -152,11 +185,19 @@
         },
         {
           "version": 4,
-          "status": "published",
+          "status": "archived",
           "filename": "heritage-recommendation-vary_v4.docx",
           "created_at": "2026-02-10T15:48:03Z",
           "created_by": "Stuart",
           "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        },
+        {
+          "version": 5,
+          "status": "published",
+          "filename": "heritage-recommendation-vary_v5.docx",
+          "created_at": "2026-05-19T16:11:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
         }
       ]
     },
@@ -164,7 +205,9 @@
       "display_name": "Certified Copy of Entry",
       "description": "Certified copy of an entry in the heritage register",
       "category": "certificates",
-      "legacy_ids": ["3. Certified Copy of Entry"],
+      "legacy_ids": [
+        "3. Certified Copy of Entry"
+      ],
       "versions": [
         {
           "version": 1,
@@ -192,11 +235,19 @@
         },
         {
           "version": 4,
-          "status": "published",
+          "status": "archived",
           "filename": "certified-copy-of-entry_v4.docx",
           "created_at": "2026-02-10T15:48:03Z",
           "created_by": "Stuart",
           "changelog": "Fixed formatting, removed footer, removed map co-ordinates"
+        },
+        {
+          "version": 5,
+          "status": "published",
+          "filename": "certified-copy-of-entry_v5.docx",
+          "created_at": "2026-05-19T16:11:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
         }
       ]
     }
