@@ -200,3 +200,14 @@
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
+
+/* Suppress the browser default focus outline on TomSelect's inner search input
+   and dropdown wrapper — the .focus .ts-control rule above is what shows the
+   focused state. */
+.cert-gen-container .ts-wrapper input:focus,
+.cert-gen-container .ts-wrapper input:focus-visible,
+.cert-gen-container .ts-control:focus,
+.cert-gen-container .ts-control:focus-visible {
+    outline: none;
+    box-shadow: none;
+}

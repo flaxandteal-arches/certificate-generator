@@ -31,7 +31,7 @@ function ViewModel() {
         try {
             const response = await fetch(`${API_BASE}/certificate-generator/get-resources/`);
             const data = await response.json();
-            self.resources = data.resources;
+            self.resources = data.resources || [];
 
             if (typeof TomSelect === "undefined") {
                 console.warn("TomSelect not loaded yet");
@@ -39,13 +39,12 @@ function ViewModel() {
             }
             self.resourceSelect = new TomSelect("#resourceSelect", {
                 placeholder: "Search resources...",
-                options: Object.values(self.resources).map(r => ({
+                options: self.resources.map(r => ({
                     value: r.resource_id,
-                    text: `${r.place_id?.value} ${r.name}`,
+                    text: `${r.place_id || ""} ${r.name || ""}`.trim() || r.resource_id,
                 })),
                 searchField: ["text"],
                 maxOptions: 100,
-                onChange: self.updateResourceMeta,
             });
         } catch (error) {
             console.error("Error loading resources:", error);
@@ -93,18 +92,6 @@ function ViewModel() {
             console.error("Error loading templates:", error);
             self.showMessage("Failed to load templates: " + error.message, "error");
         }
-    };
-
-    self.updateResourceMeta = function(resourceId) {
-        const metaDiv = document.getElementById("resourceMeta");
-        if (resourceId) {
-            const resource = self.resources.find(r => r.resource_id === resourceId);
-            if (resource) {
-                metaDiv.textContent = `Graph: ${resource.graph_id || "N/A"} | Fields: ${resource.fields_count || 0}`;
-                return;
-            }
-        }
-        metaDiv.textContent = "";
     };
 
     self.updateTemplateMeta = function(value) {
