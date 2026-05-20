@@ -4,12 +4,11 @@ Refactored document template system that works with JSON data
 using docxtpl (python-docx-template) for Jinja2 templating.
 """
 
-import html as html_module
 import json
+from datetime import datetime
 from pathlib import Path
-from datetime import datetime
 from typing import Dict, Any, Optional
-from datetime import datetime
+
 import jinja2
 
 from docxtpl import DocxTemplate, InlineImage
@@ -145,17 +144,6 @@ class DocumentTemplateProcessor:
                 context['date_today'] = datetime.now().strftime("%d %B %Y")
 
         return context
-
-    def _is_valid_image_filename(self, value: str) -> bool:
-        """Check if a string looks like a valid image filename"""
-        if not isinstance(value, str):
-            return False
-        # Must be short enough to be a filename (not a description/paragraph)
-        if len(value) > 255:
-            return False
-        # Must have an image extension
-        image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp')
-        return value.lower().endswith(image_extensions)
 
     def save(self, output_path: str) -> None:
         """

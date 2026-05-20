@@ -1,12 +1,13 @@
+import logging
 import math
-from pathlib import Path
 import re
-import resource
+from pathlib import Path
 from typing import Dict, Any
-import json
 
 from certificate_generator.views.utils.image_utils import download_images_batch, load_image
 from certificate_generator.views.utils.coordinate_utils import convert_geometry_from_resource
+
+logger = logging.getLogger(__name__)
 
 class ResourceMapper:
     def __init__(self, resource_data: Dict[str, Any]):
@@ -44,16 +45,11 @@ class ResourceMapper:
 
         self.mapped_data = extract_values(self.resource_data)
 
-        print("QQ Mapped data after initial extraction:", self.mapped_data)
-
         # Additional mappings
         self._map_images(self.mapped_data)
         self._map_address(self.mapped_data)
         self._map_geometry(self.mapped_data)
         self._map_lot_on_plan(self.mapped_data)
-
-        with open('mapped_resource.json', 'w', encoding='utf-8') as f:
-            json.dump(self.mapped_data, f, ensure_ascii=False, indent=4, default=lambda o: f"<{type(o).__name__}>")
 
     def _map_images(self, resource: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -116,7 +112,6 @@ class ResourceMapper:
                 resource['main_image'] = entry
             elif is_main_boundary and not resource.get('main_boundary'):
                 resource['main_boundary'] = entry
-                print("FOUND SQUARE MAP", resource['main_boundary'])
             elif is_boundary:
                 resource['boundary_map'].append({**entry, 'type': ['main', 'square']})
             elif is_site_plan:
@@ -140,9 +135,7 @@ class ResourceMapper:
         # check if the main image and boundary image are the same and remove the boundary image if so
         if not resource['main_image']['url'] and resource['main_boundary']['url']:
             resource['main_image'] = resource['main_boundary']
-            print("Entered image delete")
             resource['main_boundary'] = {}
-            print("Deleted main boundary image as it is the same as the main image", resource['main_boundary'])
 
     def _map_geometry(self, resource: Dict[str, Any]) -> None:
         """
@@ -153,10 +146,10 @@ class ResourceMapper:
             resource: The resource dictionary with location_data.
         """
         result = convert_geometry_from_resource(resource)
-        if result:
-            resource['mapped_geometry'] = result[0]  # Assuming we take the first geometry for simplicity
-        else:
-            resource['mapped_geometry'] = None
+        # Templates currently render a single point; if multiple geometries are
+        # present we only surface the first. Expose the full list if templates
+        # ever need them.
+        resource['mapped_geometry'] = result[0] if result else None
 
     def _map_address(self, resource: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -209,8 +202,6 @@ class ResourceMapper:
         col1 = lot_on_plans[:third]
         col2 = lot_on_plans[third:2*third]
         col3 = lot_on_plans[2*third:]
-
-        print("Mapped lot on plans:", lot_on_plans)
 
         resource['mapped_lot_on_plan'] = {
             'column_1': col1,

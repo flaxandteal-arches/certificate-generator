@@ -116,7 +116,6 @@ def convert_geometry_from_resource(resource: Dict[str, Any]) -> Optional[Dict[st
 
     # Extract coordinates from GeoJSON
     for geometry in geometry_list:
-        print("GEOMETRY", geometry)
         geospatial = geometry.get("geospatial_coordinates", {})
         features = geospatial.get("features", [])
         if not features:
