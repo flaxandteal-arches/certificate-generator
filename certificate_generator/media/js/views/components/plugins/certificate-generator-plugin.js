@@ -1,5 +1,6 @@
 import ko from "knockout";
 import template from "templates/views/components/plugins/certificate-generator-plugin.htm";
+import "../../../../css/certificate-generator-plugin.css";
 
 const API_BASE = window.location.origin;
 
