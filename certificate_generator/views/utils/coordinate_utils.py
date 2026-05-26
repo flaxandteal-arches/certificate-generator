@@ -106,9 +106,6 @@ def convert_geometry_from_resource(resource: Dict[str, Any]) -> Optional[Dict[st
     Returns:
         Dictionary with easting, northing, zone, datum, and epsg keys,
         or None if coordinates could not be extracted.
-
-    Raises:
-        ValueError: If the datum is missing from the resource data.
     """
     geometry_list = resource.get("location_data", {}).get("geometry", [])
 
@@ -135,7 +132,8 @@ def convert_geometry_from_resource(resource: Dict[str, Any]) -> Optional[Dict[st
         datum = base_map_names.get("current_base_map_name")
 
         if not datum:
-            raise ValueError("No datum (current_base_map_name) found in resource geometry data")
+            logging.warning("No datum (current_base_map_name) found in resource geometry data; skipping")
+            continue
 
         mga_value = convert_to_mga(longitude, latitude, datum)
         converted_geometries.append(mga_value)
