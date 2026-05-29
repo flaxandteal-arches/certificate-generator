@@ -5,6 +5,7 @@ using docxtpl (python-docx-template) for Jinja2 templating.
 """
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -45,43 +46,41 @@ class DocumentTemplateProcessor:
         env = jinja2.Environment()
         env.filters["mark2html"] = mark2html
         def to_image(img, width=None, height=None, max_width=155, max_height=180, anchor=None):
-            if img is None:
-                return ""
-
-            # If img is already a BytesIO (pre-downloaded), use it directly
+            # Resolve the source to raw bytes. Anything that doesn't yield real,
+            # decodable image bytes must render as "" — emitting an InlineImage
+            # for missing/empty bytes leaves a dangling image relationship, which
+            # makes Word Online / Google Docs open the document read-only.
             if isinstance(img, BytesIO):
                 img.seek(0)
-                img_data = img
+                raw = img.read()
             elif isinstance(img, str):
                 if not img:
                     return ""
-                img_data = load_image(img, self.images_dir)
+                loaded = load_image(img, self.images_dir)
+                raw = loaded.read() if loaded is not None else b""
             else:
                 return ""
-            if img_data is None:
-                return None
+            if not raw:
+                return ""
 
-            # If explicit width/height provided, use those
+            # Validate the bytes actually decode as an image before embedding.
+            try:
+                img_width, img_height = get_image_dimensions(BytesIO(raw))
+            except Exception:
+                logging.warning("to_image: skipping undecodable image (%d bytes)", len(raw))
+                return ""
+
+            # Each InlineImage gets its own fresh stream so a shared/exhausted
+            # BytesIO can't serialise as an empty media part.
             if width or height:
                 w = Mm(width) if width else None
                 h = Mm(height) if height else None
-                return InlineImage(self.doc, img_data, width=w, height=h, anchor=anchor)
+                return InlineImage(self.doc, BytesIO(raw), width=w, height=h, anchor=anchor)
 
-            # Otherwise, check image dimensions and constrain by the larger dimension
-            img_width, img_height = get_image_dimensions(img_data)
-            img_data.seek(0)  # Reset position after reading dimensions
-
-            # Calculate aspect ratio and determine which dimension to constrain
-            if img_width >= img_height:
-                # Landscape or square - constrain by height to fit caption
-                w = None
-                h = Mm(105)
-            else:
-                # Portrait - constrain by height
-                w = None
-                h = Mm(max_height)
-
-            return InlineImage(self.doc, img_data, width=w, height=h, anchor=anchor)
+            # Constrain by height; square/landscape and portrait differ only in
+            # the cap so captions still fit.
+            h = Mm(105) if img_width >= img_height else Mm(max_height)
+            return InlineImage(self.doc, BytesIO(raw), width=None, height=h, anchor=anchor)
         env.filters["to_image"] = to_image
         def enumeratep1(itbl):
             for n, i in enumerate(itbl):

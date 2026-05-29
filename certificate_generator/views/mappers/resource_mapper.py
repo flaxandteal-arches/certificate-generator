@@ -13,6 +13,21 @@ from certificate_generator.views.utils.coordinate_utils import convert_geometry_
 
 logger = logging.getLogger(__name__)
 
+# Square IIIF crop framing the parcel on A4-portrait boundary-map sheets,
+# trimming the title/legend chrome. Set the left/right edges and the top edge
+# (all % of page); the square's side is (right - left) and the height auto-
+# derives from the page aspect so the crop is always square.
+_BOUNDARY_LEFT = 8.5    # left edge, % across (↑ pulls the left side in)
+_BOUNDARY_RIGHT = 86.0  # right edge, % across (↓ pulls the right side in)
+_BOUNDARY_TOP = 12.0    # top edge, % down  (↑ moves the square down the page)
+_PAGE_ASPECT = 2481 / 3506
+_BOUNDARY_WIDTH = _BOUNDARY_RIGHT - _BOUNDARY_LEFT
+BOUNDARY_MAP_REGION = (
+    f"pct:{_BOUNDARY_LEFT},{_BOUNDARY_TOP},"
+    f"{_BOUNDARY_WIDTH},{round(_BOUNDARY_WIDTH * _PAGE_ASPECT, 2)}"
+)
+
+
 class ResourceMapper:
     def __init__(self, resource_data: Dict[str, Any]):
         self.resource_data = resource_data
@@ -63,37 +78,28 @@ class ResourceMapper:
             context: The context dictionary with potential image fields.
         """
         images = resource.get('images', [])
-
         if not images:
             return resource
-        
+
         resource['boundary_map'] = []
         resource['site_plan'] = []
         resource['illustrations'] = []
-        print("1111111111111111111111111111111111111111111111111111111111111111")
-        # First pass: classify each image into a slot using its RDM visibility
-        # tags. Image bytes aren't needed to classify, so downloading is deferred
-        # until each image's slot is known — the slot decides the IIIF crop
-        # region (square for the main images, full/uncropped for the rest).
+        # Classify each image into a slot by its RDM visibility tags. `url` is
+        # the stored download URL; `name`/`path` is the filename IIIF addresses by.
         for image in images:
             meta = image.get('_', [{}])[0]
             visibility = image.get('visibility', [])
-            url = image.get('preview', [{}])[0].get('url', '')
+            url = meta.get('url', '')
+            filename = meta.get('path') or meta.get('name') or ''
             alt_text = meta.get('altText') or meta.get('alt_text') or ''
             type = meta.get('type', '')
             if type and type.startswith('video/'):
                 continue  # Skip videos
-            entry = {'alt_text': alt_text, 'url': url}
-
-            if not alt_text:
-                continue
+            entry = {'alt_text': alt_text, 'url': url, 'filename': filename}
 
             if 'Available' not in visibility and 'Public' not in visibility:
                 continue
 
-            # Classification is driven entirely by RDM visibility tags.
-            # 'Square Shot' is no longer required: the main images are cropped to
-            # a square on the fly by the IIIF image server.
             is_main = (
                 'Main Image for All Reports' in visibility
                 or 'Main Image for Public Website' in visibility
@@ -119,13 +125,16 @@ class ResourceMapper:
         else:
             resource['main_image'] = resource.get('main_image', {'alt_text': '', 'url': ''})
 
-        # Fetch image bytes from the IIIF image server: the main image and main
-        # boundary are cropped to a square; everything else is served uncropped.
+        # Fetch image bytes from IIIF, cropping per kind: main photo -> centred
+        # square; boundary maps -> framed square; everything else -> uncropped.
         square_entries = [resource['main_image']]
+        boundary_entries = []
         if resource.get('main_boundary'):
-            square_entries.append(resource['main_boundary'])
-        full_entries = resource['boundary_map'] + resource['site_plan'] + resource['illustrations']
+            boundary_entries.append(resource['main_boundary'])
+        boundary_entries += resource['boundary_map']
+        full_entries = resource['site_plan'] + resource['illustrations']
         self._attach_iiif_images(square_entries, region='square')
+        self._attach_iiif_images(boundary_entries, region=BOUNDARY_MAP_REGION)
         self._attach_iiif_images(full_entries, region='full')
 
         # set the main boundary placeholder if there isn't one
@@ -141,29 +150,23 @@ class ResourceMapper:
     def _attach_iiif_images(self, entries, region):
         """
         Populate each entry's ``image`` (BytesIO) from the IIIF image server,
-        cropping per ``region`` ('square' or 'full'). Falls back to the raw
-        stored URL when IIIF has no identifier for, or cannot serve, an image.
+        cropping per ``region``. IIIF is the single source of truth: an image
+        IIIF can't serve gets ``image=None`` and is skipped at render time.
         Mutates the entries in place.
         """
         if not entries:
             return
 
-        # Primary: filename-based IIIF URLs via the public /iiifserver proxy.
+        # Filename-based IIIF URLs via the public /iiifserver proxy. Prefer the
+        # explicit filename; fall back to the last path segment of the stored
+        # URL (handles blob URLs whose segment is the filename).
         for entry in entries:
-            identifier = iiif_identifier_from_url(entry.get('url', ''))
+            identifier = entry.get('filename') or iiif_identifier_from_url(entry.get('url', ''))
             entry['_iiif_url'] = build_iiif_url(identifier, region=region)
         iiif_cache = download_images_batch([e['_iiif_url'] for e in entries if e.get('_iiif_url')])
 
-        # Fallback: the raw stored URL for any image IIIF couldn't serve.
-        fallback_urls = [
-            e['url'] for e in entries
-            if e.get('url') and not iiif_cache.get(e.get('_iiif_url'))
-        ]
-        fallback_cache = download_images_batch(fallback_urls) if fallback_urls else {}
-
         for entry in entries:
-            iiif_url = entry.pop('_iiif_url', '')
-            entry['image'] = iiif_cache.get(iiif_url) or fallback_cache.get(entry.get('url', ''))
+            entry['image'] = iiif_cache.get(entry.pop('_iiif_url', ''))
 
     def _map_geometry(self, resource: Dict[str, Any]) -> None:
         """
