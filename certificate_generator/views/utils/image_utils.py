@@ -9,7 +9,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from pathlib import Path
 from typing import Union, Optional, Tuple, List, Dict
+from urllib.parse import urlparse, quote
 
+from django.conf import settings
 from PIL import Image
 
 
@@ -117,3 +119,57 @@ def download_images_batch(urls: List[str], max_workers: int = 10, timeout: int =
 def is_url(value: str) -> bool:
     """Check if a string is a URL."""
     return isinstance(value, str) and value.startswith(('http://', 'https://'))
+
+
+# Map a source file extension to a Cantaloupe-supported IIIF output format,
+# so an image is returned in its original format (e.g. a PNG isn't flattened
+# to JPEG, losing transparency). Anything unrecognised falls back to jpg.
+_IIIF_FORMATS = {
+    'jpg': 'jpg', 'jpeg': 'jpg', 'png': 'png', 'gif': 'gif',
+    'tif': 'tif', 'tiff': 'tif', 'webp': 'webp',
+}
+
+
+def iiif_identifier_from_url(url: str) -> str:
+    """
+    Derive the IIIF image identifier from an image's stored blob/preview URL.
+
+    Cantaloupe is configured against the same blob storage and addresses images
+    by filename, so the identifier is the last path segment of the URL (any
+    folders and query string stripped).
+
+    Returns '' if no filename can be derived.
+    """
+    if not url:
+        return ''
+    path = urlparse(url).path
+    return path.rsplit('/', 1)[-1]
+
+
+def build_iiif_url(identifier: str, region: str = 'full', size: str = 'full') -> str:
+    """
+    Build a IIIF Image API 2.x URL for the given identifier, served through the
+    public Arches /iiifserver proxy.
+
+    URL grammar: {base}/iiifserver/iiif/2/{identifier}/{region}/{size}/{rotation}/{quality}.{format}
+    e.g. https://host/iiifserver/iiif/2/stock_01.jpeg/square/full/0/default.jpg
+
+    The proxy is used (rather than the internal Cantaloupe endpoint) because the
+    certificate generator only has egress to public addresses, not to the
+    internal cantaloupe service. settings.PUBLIC_SERVER_ADDRESS is the public
+    ingress URL and is set per-environment. The output {format} matches the
+    identifier's extension.
+
+    Args:
+        identifier: the image filename (see iiif_identifier_from_url)
+        region: IIIF region — 'square' to crop to a centred square, or 'full'
+        size: IIIF size — defaults to 'full'
+
+    Returns '' if there is no identifier or no configured public server address.
+    """
+    base = getattr(settings, 'PUBLIC_SERVER_ADDRESS', None)
+    if not identifier or not base:
+        return ''
+    ext = identifier.rsplit('.', 1)[-1].lower() if '.' in identifier else ''
+    fmt = _IIIF_FORMATS.get(ext, 'jpg')
+    return f"{base.rstrip('/')}/iiifserver/iiif/2/{quote(identifier)}/{region}/{size}/0/default.{fmt}"

@@ -3,7 +3,12 @@ import math
 from pathlib import Path
 from typing import Dict, Any
 
-from certificate_generator.views.utils.image_utils import download_images_batch, load_image
+from certificate_generator.views.utils.image_utils import (
+    download_images_batch,
+    load_image,
+    iiif_identifier_from_url,
+    build_iiif_url,
+)
 from certificate_generator.views.utils.coordinate_utils import convert_geometry_from_resource
 
 logger = logging.getLogger(__name__)
@@ -65,15 +70,11 @@ class ResourceMapper:
         resource['boundary_map'] = []
         resource['site_plan'] = []
         resource['illustrations'] = []
-
-        # Collect all image URLs and batch-download them concurrently
-        urls = []
-        for image in images:
-            url = image.get('preview', [{}])[0].get('url', '')
-            if url:
-                urls.append(url)
-        image_cache = download_images_batch(urls)
-
+        print("1111111111111111111111111111111111111111111111111111111111111111")
+        # First pass: classify each image into a slot using its RDM visibility
+        # tags. Image bytes aren't needed to classify, so downloading is deferred
+        # until each image's slot is known — the slot decides the IIIF crop
+        # region (square for the main images, full/uncropped for the rest).
         for image in images:
             meta = image.get('_', [{}])[0]
             visibility = image.get('visibility', [])
@@ -82,7 +83,7 @@ class ResourceMapper:
             type = meta.get('type', '')
             if type and type.startswith('video/'):
                 continue  # Skip videos
-            entry = {'image': image_cache.get(url), 'alt_text': alt_text, 'url': url}
+            entry = {'alt_text': alt_text, 'url': url}
 
             if not alt_text:
                 continue
@@ -91,8 +92,8 @@ class ResourceMapper:
                 continue
 
             # Classification is driven entirely by RDM visibility tags.
-            # 'Square Shot' is no longer required: the main image is cropped to a
-            # square on the fly by the IIIF image server.
+            # 'Square Shot' is no longer required: the main images are cropped to
+            # a square on the fly by the IIIF image server.
             is_main = (
                 'Main Image for All Reports' in visibility
                 or 'Main Image for Public Website' in visibility
@@ -111,24 +112,58 @@ class ResourceMapper:
                 resource['site_plan'].append(entry)
             else:
                 resource['illustrations'].append(entry)
-        
-        # if no main image set as the first image
-        if 'main_image' not in resource and len(resource['illustrations']) > 0:
-            first_url = resource['illustrations'][0]['url']
-            alt_text = resource['illustrations'][0]['alt_text']
-            resource['main_image'] = {'image': image_cache.get(first_url), 'alt_text': alt_text, 'url': first_url}
-        else:
-            resource['main_image'] = resource.get('main_image', {'image': None, 'alt_text': '', 'url': ''})
 
-        # set the main boundary image
+        # if no main image, fall back to the first illustration
+        if 'main_image' not in resource and len(resource['illustrations']) > 0:
+            resource['main_image'] = dict(resource['illustrations'][0])
+        else:
+            resource['main_image'] = resource.get('main_image', {'alt_text': '', 'url': ''})
+
+        # Fetch image bytes from the IIIF image server: the main image and main
+        # boundary are cropped to a square; everything else is served uncropped.
+        square_entries = [resource['main_image']]
+        if resource.get('main_boundary'):
+            square_entries.append(resource['main_boundary'])
+        full_entries = resource['boundary_map'] + resource['site_plan'] + resource['illustrations']
+        self._attach_iiif_images(square_entries, region='square')
+        self._attach_iiif_images(full_entries, region='full')
+
+        # set the main boundary placeholder if there isn't one
         if 'main_boundary' not in resource:
             no_map = load_image('no_boundary_map.jpg', Path('static/images'))
             resource['main_boundary'] = {'image': no_map, 'alt_text': 'No boundary map', 'url': ''}
 
-        # check if the main image and boundary image are the same and remove the boundary image if so
-        if not resource['main_image']['url'] and resource['main_boundary']['url']:
+        # if there's no main image but there is a boundary, use the boundary as the main image
+        if not resource['main_image'].get('url') and resource['main_boundary'].get('url'):
             resource['main_image'] = resource['main_boundary']
             resource['main_boundary'] = {}
+
+    def _attach_iiif_images(self, entries, region):
+        """
+        Populate each entry's ``image`` (BytesIO) from the IIIF image server,
+        cropping per ``region`` ('square' or 'full'). Falls back to the raw
+        stored URL when IIIF has no identifier for, or cannot serve, an image.
+        Mutates the entries in place.
+        """
+        if not entries:
+            return
+
+        # Primary: filename-based IIIF URLs via the public /iiifserver proxy.
+        for entry in entries:
+            identifier = iiif_identifier_from_url(entry.get('url', ''))
+            entry['_iiif_url'] = build_iiif_url(identifier, region=region)
+        iiif_cache = download_images_batch([e['_iiif_url'] for e in entries if e.get('_iiif_url')])
+
+        # Fallback: the raw stored URL for any image IIIF couldn't serve.
+        fallback_urls = [
+            e['url'] for e in entries
+            if e.get('url') and not iiif_cache.get(e.get('_iiif_url'))
+        ]
+        fallback_cache = download_images_batch(fallback_urls) if fallback_urls else {}
+
+        for entry in entries:
+            iiif_url = entry.pop('_iiif_url', '')
+            entry['image'] = iiif_cache.get(iiif_url) or fallback_cache.get(entry.get('url', ''))
 
     def _map_geometry(self, resource: Dict[str, Any]) -> None:
         """
