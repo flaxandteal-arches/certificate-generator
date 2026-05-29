@@ -1,6 +1,5 @@
 import logging
 import math
-import re
 from pathlib import Path
 from typing import Dict, Any
 
@@ -67,9 +66,6 @@ class ResourceMapper:
         resource['site_plan'] = []
         resource['illustrations'] = []
 
-        site_plan_terms = ['site plan', 'siteplan', 'site_plan', 'floor plan', 'plan']
-        boundary_map_terms = ['boundary map', 'boundary_map', 'boundarymap', 'map', 'boundary']
-        
         # Collect all image URLs and batch-download them concurrently
         urls = []
         for image in images:
@@ -81,7 +77,6 @@ class ResourceMapper:
         for image in images:
             meta = image.get('_', [{}])[0]
             visibility = image.get('visibility', [])
-            name = meta.get('name', '').lower()
             url = image.get('preview', [{}])[0].get('url', '')
             alt_text = meta.get('altText') or meta.get('alt_text') or ''
             type = meta.get('type', '')
@@ -92,21 +87,19 @@ class ResourceMapper:
             if not alt_text:
                 continue
 
-            if 'Available' not in visibility and 'Public' not in visibility: 
+            if 'Available' not in visibility and 'Public' not in visibility:
                 continue
 
+            # Classification is driven entirely by RDM visibility tags.
+            # 'Square Shot' is no longer required: the main image is cropped to a
+            # square on the fly by the IIIF image server.
             is_main = (
-                ('Main Image for All Reports' in visibility
-                 or 'Main Image for Public Website' in visibility)
-                and 'Square Shot' in visibility
+                'Main Image for All Reports' in visibility
+                or 'Main Image for Public Website' in visibility
             )
-            is_main_boundary = (
-                'Main Image for Maps' in visibility
-                and 'Square Shot' in visibility
-            )
-            name_or_alt = f"{name} {alt_text.lower()}"
-            is_boundary = any(re.search(rf'\b{term}\b', name_or_alt) for term in boundary_map_terms)
-            is_site_plan = any(re.search(rf'\b{term}\b', name_or_alt) for term in site_plan_terms)
+            is_main_boundary = 'Main Image for Maps' in visibility
+            is_boundary = 'Boundary Map' in visibility
+            is_site_plan = 'Site Plan' in visibility
 
             if is_main and not resource.get('main_image'):
                 resource['main_image'] = entry
