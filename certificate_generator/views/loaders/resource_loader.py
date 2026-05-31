@@ -27,7 +27,7 @@ def _ensure_graph_registered(graph_id: str) -> str:
     if handle is not None:
         return handle
     graph = Graph.objects.get(pk=graph_id)
-    graph_json = json.dumps({"graph": [graph.serialize()]})
+    graph_json = json.dumps({"graph": [graph.serialize()]}, default=str)
     handle = alizarin.register_graph(graph_json)
     _REGISTERED_GRAPHS[graph_id] = handle
     return handle
