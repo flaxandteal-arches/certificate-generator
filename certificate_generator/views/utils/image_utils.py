@@ -146,6 +146,22 @@ def iiif_identifier_from_url(url: str) -> str:
     return path.rsplit('/', 1)[-1]
 
 
+def iiif_image_size(identifier: str, timeout: int = 5) -> Optional[Tuple[int, int]]:
+    """Read (width, height) from an image's IIIF info.json, or None if unavailable."""
+    base = getattr(settings, 'PUBLIC_SERVER_ADDRESS', None)
+    if not identifier or not base:
+        return None
+    url = f"{base.rstrip('/')}/iiifserver/iiif/2/{quote(identifier)}/info.json"
+    try:
+        resp = requests.get(url, timeout=timeout)
+        resp.raise_for_status()
+        info = resp.json()
+        return int(info['width']), int(info['height'])
+    except (requests.RequestException, ValueError, KeyError, TypeError) as e:
+        logging.warning("Failed to read IIIF info.json for %s: %s", identifier, e)
+        return None
+
+
 def build_iiif_url(identifier: str, region: str = 'full', size: str = 'full') -> str:
     """
     Build a IIIF Image API 2.x URL for the given identifier, served through the

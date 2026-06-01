@@ -3,10 +3,13 @@ import math
 from pathlib import Path
 from typing import Dict, Any
 
+from django.conf import settings
+
 from certificate_generator.views.utils.image_utils import (
     download_images_batch,
     load_image,
     iiif_identifier_from_url,
+    iiif_image_size,
     build_iiif_url,
 )
 from certificate_generator.views.utils.coordinate_utils import convert_geometry_from_resource
@@ -26,6 +29,32 @@ BOUNDARY_MAP_REGION = (
     f"pct:{_BOUNDARY_LEFT},{_BOUNDARY_TOP},"
     f"{_BOUNDARY_WIDTH},{round(_BOUNDARY_WIDTH * _PAGE_ASPECT, 2)}"
 )
+
+_A4_ASPECT_TOLERANCE = 0.06  # how far a sheet may stray from A4 portrait
+
+
+def _is_a4_portrait(width: int, height: int) -> bool:
+    """True if a pixel size is ~A4 portrait (taller than wide, aspect near _PAGE_ASPECT)."""
+    if not width or not height or width >= height:
+        return False
+    return abs((width / height) - _PAGE_ASPECT) <= _A4_ASPECT_TOLERANCE
+
+
+def _i18n_value(node: Dict[str, Any]) -> str:
+    """Collapse an Arches i18n node {lang: {value, direction}} to the settings language, else en, else any."""
+    for lang in (getattr(settings, 'LANGUAGE_CODE', None), 'en'):
+        if lang and node.get(lang, {}).get('value'):
+            return node[lang]['value']
+    for leaf in node.values():
+        if leaf.get('value'):
+            return leaf['value']
+    return ''
+
+
+def _caption(image: Dict[str, Any]) -> str:
+    """The image caption, read from the images nodegroup's captions.caption node."""
+    caption = image.get('captions', {}).get('caption', '')
+    return caption if isinstance(caption, str) else ''
 
 
 class ResourceMapper:
@@ -47,9 +76,12 @@ class ResourceMapper:
                 # Arches i18n string leaf: {"value": "...", "direction": "ltr"}
                 if 'value' in data and 'direction' in data:
                     return data['value']
-                # Language map: {"en": {"value": ..., "direction": ...}, ...}
-                if 'en' in data and len(data) == 1:
-                    return extract_values(data['en'])
+                # Arches multilingual node {lang: {value, direction}}: collapse to one language now.
+                if data and all(
+                    isinstance(v, dict) and 'value' in v and 'direction' in v
+                    for v in data.values()
+                ):
+                    return _i18n_value(data)
                 elif 'labels' in data:
                     labels = data.get('labels', [])
                     labels_list = [label.get('value') for label in labels]
@@ -91,7 +123,11 @@ class ResourceMapper:
             visibility = image.get('visibility', [])
             url = meta.get('url', '')
             filename = meta.get('path') or meta.get('name') or ''
-            alt_text = meta.get('altText') or meta.get('alt_text') or ''
+            # Caption node; fall back to the file's own altText/alt_text.
+            alt_text = (
+                _caption(image)
+                or meta.get('altText') or meta.get('alt_text') or ''
+            )
             type = meta.get('type', '')
             if type and type.startswith('video/'):
                 continue  # Skip videos
@@ -108,16 +144,27 @@ class ResourceMapper:
             is_boundary = 'Boundary Map' in visibility
             is_site_plan = 'Site Plan' in visibility
 
+            # Slots are non-exclusive: one image may carry several visibility
+            # tags (e.g. both "Main Image for All Reports" and "Boundary Map")
+            # and must then appear in every slot it's tagged for. Each slot gets
+            # its own copy because _attach_iiif_images mutates an entry's `image`
+            # in place per crop region, so a shared dict would have its first
+            # crop clobbered by the second.
+            matched = False
             if is_main and not resource.get('main_image'):
-                resource['main_image'] = entry
-            elif is_main_boundary and not resource.get('main_boundary'):
-                resource['main_boundary'] = entry
-            elif is_boundary:
+                resource['main_image'] = dict(entry)
+                matched = True
+            if is_main_boundary and not resource.get('main_boundary'):
+                resource['main_boundary'] = dict(entry)
+                matched = True
+            if is_boundary:
                 resource['boundary_map'].append({**entry, 'type': ['main', 'square']})
-            elif is_site_plan:
-                resource['site_plan'].append(entry)
-            else:
-                resource['illustrations'].append(entry)
+                matched = True
+            if is_site_plan:
+                resource['site_plan'].append(dict(entry))
+                matched = True
+            if not matched:
+                resource['illustrations'].append(dict(entry))
 
         # if no main image, fall back to the first illustration
         if 'main_image' not in resource and len(resource['illustrations']) > 0:
@@ -125,17 +172,26 @@ class ResourceMapper:
         else:
             resource['main_image'] = resource.get('main_image', {'alt_text': '', 'url': ''})
 
-        # Fetch image bytes from IIIF, cropping per kind: main photo -> centred
-        # square; boundary maps -> framed square; everything else -> uncropped.
         square_entries = [resource['main_image']]
-        boundary_entries = []
-        if resource.get('main_boundary'):
-            boundary_entries.append(resource['main_boundary'])
-        boundary_entries += resource['boundary_map']
-        full_entries = resource['site_plan'] + resource['illustrations']
+
+        # main_boundary falls back to the first Boundary Map; a copy so it can be cropped independently.
+        if not resource.get('main_boundary') and resource['boundary_map']:
+            resource['main_boundary'] = dict(resource['boundary_map'][0])
+
+        full_entries = resource['boundary_map'] + resource['site_plan'] + resource['illustrations']
         self._attach_iiif_images(square_entries, region='square')
-        self._attach_iiif_images(boundary_entries, region=BOUNDARY_MAP_REGION)
         self._attach_iiif_images(full_entries, region='full')
+
+        # Front-page main map: chrome-trim crop only for A4-portrait sheets, else centred square.
+        main_boundary = resource.get('main_boundary')
+        if main_boundary:
+            identifier = (
+                main_boundary.get('filename')
+                or iiif_identifier_from_url(main_boundary.get('url', ''))
+            )
+            size = iiif_image_size(identifier) if identifier else None
+            region = BOUNDARY_MAP_REGION if size and _is_a4_portrait(*size) else 'square'
+            self._attach_iiif_images([main_boundary], region=region)
 
         # set the main boundary placeholder if there isn't one
         if 'main_boundary' not in resource:
