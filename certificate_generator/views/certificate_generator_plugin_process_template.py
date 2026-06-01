@@ -61,27 +61,6 @@ class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
             # Resolve concept leaves to their labels (language already handled in ResourceMapper).
             mapped_data = resolve_concepts(data)
 
-            # DEBUG: dump the data structures so we can see exactly which keys
-            # hold the place id / place name / image captions. BytesIO image
-            # bytes aren't JSON-serialisable, so default=str renders them as a
-            # repr placeholder. Remove once the field mapping is confirmed.
-            try:
-                # Write to the filesystem root so the files are trivial to find.
-                debug_dir = Path("/")
-                tree_path = (debug_dir / f"{resource_id}_tree.json").resolve()
-                mapped_path = (debug_dir / f"{resource_id}_mapped.json").resolve()
-                with open(tree_path, "w", encoding="utf-8") as fh:
-                    json.dump(resource_tree, fh, indent=2, default=str, ensure_ascii=False)
-                with open(mapped_path, "w", encoding="utf-8") as fh:
-                    json.dump(mapped_data, fh, indent=2, default=str, ensure_ascii=False)
-                logger.warning("DEBUG: dumped resource data to %s and %s", tree_path, mapped_path)
-                # print() goes straight to stdout/console regardless of logging
-                # config, so it's visible even if warnings are filtered.
-                print(f"\n===== CERT-GEN DEBUG =====\ntree:   {tree_path}\nmapped: {mapped_path}\n==========================\n", flush=True)
-                print("CERT-GEN DEBUG mapped_data:\n" + json.dumps(mapped_data, indent=2, default=str, ensure_ascii=False), flush=True)
-            except Exception:
-                logger.exception("DEBUG: failed to dump resource data")
-
             template_path = document_service_svc.resolve_template(template_id, version)
             document_bytes = document_service_svc.generate_document(template_path, mapped_data)
 
