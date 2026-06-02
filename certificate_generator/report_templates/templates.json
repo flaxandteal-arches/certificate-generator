@@ -43,11 +43,19 @@
         },
         {
           "version": 5,
-          "status": "published",
+          "status": "archived",
           "filename": "heritage-recommendation_v5.docx",
           "created_at": "2026-05-19T16:11:00Z",
           "created_by": "Stuart",
           "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
+        },
+        {
+          "version": 6,
+          "status": "published",
+          "filename": "heritage-recommendation_v6.docx",
+          "created_at": "2026-06-01T00:00:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed place ID (system reference number) and place name not rendering: placeholder now reads system_reference_numbers.primaryreferencenumber.primary_reference_number instead of the empty uuid.resourceid; place name now prefers the Primary monument name and falls back to the first name when no use-type is set. Image captions now pull from the caption node."
         }
       ]
     },
@@ -93,11 +101,19 @@
         },
         {
           "version": 5,
-          "status": "published",
+          "status": "archived",
           "filename": "entry-qld-heritage-register_v5.docx",
           "created_at": "2026-05-19T16:11:00Z",
           "created_by": "Stuart",
           "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
+        },
+        {
+          "version": 6,
+          "status": "published",
+          "filename": "entry-qld-heritage-register_v6.docx",
+          "created_at": "2026-06-01T00:00:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed place ID (system reference number) and place name not rendering: placeholder now reads system_reference_numbers.primaryreferencenumber.primary_reference_number instead of the empty uuid.resourceid; place name now prefers the Primary monument name and falls back to the first name when no use-type is set. Image captions now pull from the caption node."
         }
       ]
     },
@@ -143,11 +159,19 @@
         },
         {
           "version": 5,
-          "status": "published",
+          "status": "archived",
           "filename": "heritage-recommendation-destroyed_v5.docx",
           "created_at": "2026-05-19T16:11:00Z",
           "created_by": "Stuart",
           "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
+        },
+        {
+          "version": 6,
+          "status": "published",
+          "filename": "heritage-recommendation-destroyed_v6.docx",
+          "created_at": "2026-06-01T00:00:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed place ID (system reference number) and place name not rendering: placeholder now reads system_reference_numbers.primaryreferencenumber.primary_reference_number instead of the empty uuid.resourceid; place name now prefers the Primary monument name and falls back to the first name when no use-type is set. Image captions now pull from the caption node."
         }
       ]
     },
@@ -193,11 +217,19 @@
         },
         {
           "version": 5,
-          "status": "published",
+          "status": "archived",
           "filename": "heritage-recommendation-vary_v5.docx",
           "created_at": "2026-05-19T16:11:00Z",
           "created_by": "Stuart",
           "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
+        },
+        {
+          "version": 6,
+          "status": "published",
+          "filename": "heritage-recommendation-vary_v6.docx",
+          "created_at": "2026-06-01T00:00:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed place ID (system reference number) and place name not rendering: placeholder now reads system_reference_numbers.primaryreferencenumber.primary_reference_number instead of the empty uuid.resourceid; place name now prefers the Primary monument name and falls back to the first name when no use-type is set. Image captions now pull from the caption node."
         }
       ]
     },
@@ -243,11 +275,19 @@
         },
         {
           "version": 5,
-          "status": "published",
+          "status": "archived",
           "filename": "certified-copy-of-entry_v5.docx",
           "created_at": "2026-05-19T16:11:00Z",
           "created_by": "Stuart",
           "changelog": "Fixed names, criteria, descriptions and images not rendering: Arches concept fields are lists, so comparisons now use membership ('X' in field) instead of equality, and Word smart quotes in Jinja tags were replaced with straight quotes."
+        },
+        {
+          "version": 6,
+          "status": "published",
+          "filename": "certified-copy-of-entry_v6.docx",
+          "created_at": "2026-06-01T00:00:00Z",
+          "created_by": "Stuart",
+          "changelog": "Fixed place ID (system reference number) and place name not rendering: placeholder now reads system_reference_numbers.primaryreferencenumber.primary_reference_number instead of the empty uuid.resourceid; place name now prefers the Primary monument name and falls back to the first name when no use-type is set. Image captions now pull from the caption node."
         }
       ]
     }

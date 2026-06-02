@@ -7,7 +7,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, JsonResponse
 from django.views import View
 from pathlib import Path
-from django.utils.translation import get_language
 from certificate_generator.views.services import document_service
 from certificate_generator.views.loaders import ResourceLoader
 from certificate_generator.views.mappers import ResourceMapper
@@ -59,7 +58,9 @@ class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
             # whole DB.
             resource_tree = ResourceLoader().load(resource_id)
             data = ResourceMapper(resource_tree).load_resource()
-            mapped_data = resolve_language(data, lang='en')
+            # Resolve concept leaves to their labels (language already handled in ResourceMapper).
+            mapped_data = resolve_concepts(data)
+
             template_path = document_service_svc.resolve_template(template_id, version)
             document_bytes = document_service_svc.generate_document(template_path, mapped_data)
 
@@ -99,24 +100,9 @@ class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
             )
 
 
-def resolve_language(data, lang=None, fallback_langs=('en', 'en-US', 'el', 'fr')):
-    if lang is None:
-        lang = get_language() or 'en'
-        lang = '-'.join(
-            part.upper() if i > 0 else part.lower()
-            for i, part in enumerate(lang.split('-'))
-        )
-
+def resolve_concepts(data):
+    """Collapse concept leaves ({'_': [[id, label], ...]}) to their label and recurse."""
     if isinstance(data, dict):
-        # Multilingual leaf: {'en': {'value': '...', 'direction': '...'}, ...}
-        if data and all(isinstance(v, dict) and 'value' in v for v in data.values()):
-            for candidate in (lang, *fallback_langs):
-                if candidate in data and data[candidate]['value'] != '':
-                    return data[candidate]['value']
-            return ''
-
-        # Concept leaf: {'_': [['P', 'Primary']], 'some_metatype': [...]}
-        # The '_' key holds a list of [prefLabel_id, prefLabel_value] pairs
         if '_' in data:
             raw = data['_']
             if isinstance(raw, list) and raw:
@@ -127,9 +113,9 @@ def resolve_language(data, lang=None, fallback_langs=('en', 'en-US', 'el', 'fr')
                     return first
             return raw
 
-        return {k: resolve_language(v, lang, fallback_langs) for k, v in data.items()}
+        return {k: resolve_concepts(v) for k, v in data.items()}
 
     if isinstance(data, list):
-        return [resolve_language(item, lang, fallback_langs) for item in data]
+        return [resolve_concepts(item) for item in data]
 
     return data

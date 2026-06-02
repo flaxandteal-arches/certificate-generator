@@ -1,13 +1,61 @@
 import logging
 import math
-import re
 from pathlib import Path
 from typing import Dict, Any
 
-from certificate_generator.views.utils.image_utils import download_images_batch, load_image
+from django.conf import settings
+
+from certificate_generator.views.utils.image_utils import (
+    download_images_batch,
+    load_image,
+    iiif_identifier_from_url,
+    iiif_image_size,
+    build_iiif_url,
+)
 from certificate_generator.views.utils.coordinate_utils import convert_geometry_from_resource
 
 logger = logging.getLogger(__name__)
+
+# Square IIIF crop framing the parcel on A4-portrait boundary-map sheets,
+# trimming the title/legend chrome. Set the left/right edges and the top edge
+# (all % of page); the square's side is (right - left) and the height auto-
+# derives from the page aspect so the crop is always square.
+_BOUNDARY_LEFT = 8.5    # left edge, % across (↑ pulls the left side in)
+_BOUNDARY_RIGHT = 86.0  # right edge, % across (↓ pulls the right side in)
+_BOUNDARY_TOP = 12.0    # top edge, % down  (↑ moves the square down the page)
+_PAGE_ASPECT = 2481 / 3506
+_BOUNDARY_WIDTH = _BOUNDARY_RIGHT - _BOUNDARY_LEFT
+BOUNDARY_MAP_REGION = (
+    f"pct:{_BOUNDARY_LEFT},{_BOUNDARY_TOP},"
+    f"{_BOUNDARY_WIDTH},{round(_BOUNDARY_WIDTH * _PAGE_ASPECT, 2)}"
+)
+
+_A4_ASPECT_TOLERANCE = 0.06  # how far a sheet may stray from A4 portrait
+
+
+def _is_a4_portrait(width: int, height: int) -> bool:
+    """True if a pixel size is ~A4 portrait (taller than wide, aspect near _PAGE_ASPECT)."""
+    if not width or not height or width >= height:
+        return False
+    return abs((width / height) - _PAGE_ASPECT) <= _A4_ASPECT_TOLERANCE
+
+
+def _i18n_value(node: Dict[str, Any]) -> str:
+    """Collapse an Arches i18n node {lang: {value, direction}} to the settings language, else en, else any."""
+    for lang in (getattr(settings, 'LANGUAGE_CODE', None), 'en'):
+        if lang and node.get(lang, {}).get('value'):
+            return node[lang]['value']
+    for leaf in node.values():
+        if leaf.get('value'):
+            return leaf['value']
+    return ''
+
+
+def _caption(image: Dict[str, Any]) -> str:
+    """The image caption, read from the images nodegroup's captions.caption node."""
+    caption = image.get('captions', {}).get('caption', '')
+    return caption if isinstance(caption, str) else ''
+
 
 class ResourceMapper:
     def __init__(self, resource_data: Dict[str, Any]):
@@ -28,9 +76,12 @@ class ResourceMapper:
                 # Arches i18n string leaf: {"value": "...", "direction": "ltr"}
                 if 'value' in data and 'direction' in data:
                     return data['value']
-                # Language map: {"en": {"value": ..., "direction": ...}, ...}
-                if 'en' in data and len(data) == 1:
-                    return extract_values(data['en'])
+                # Arches multilingual node {lang: {value, direction}}: collapse to one language now.
+                if data and all(
+                    isinstance(v, dict) and 'value' in v and 'direction' in v
+                    for v in data.values()
+                ):
+                    return _i18n_value(data)
                 elif 'labels' in data:
                     labels = data.get('labels', [])
                     labels_list = [label.get('value') for label in labels]
@@ -59,83 +110,119 @@ class ResourceMapper:
             context: The context dictionary with potential image fields.
         """
         images = resource.get('images', [])
-
         if not images:
             return resource
-        
+
         resource['boundary_map'] = []
         resource['site_plan'] = []
         resource['illustrations'] = []
-
-        site_plan_terms = ['site plan', 'siteplan', 'site_plan', 'floor plan', 'plan']
-        boundary_map_terms = ['boundary map', 'boundary_map', 'boundarymap', 'map', 'boundary']
-        
-        # Collect all image URLs and batch-download them concurrently
-        urls = []
-        for image in images:
-            url = image.get('preview', [{}])[0].get('url', '')
-            if url:
-                urls.append(url)
-        image_cache = download_images_batch(urls)
-
+        # Classify each image into a slot by its RDM visibility tags. `url` is
+        # the stored download URL; `name`/`path` is the filename IIIF addresses by.
         for image in images:
             meta = image.get('_', [{}])[0]
             visibility = image.get('visibility', [])
-            name = meta.get('name', '').lower()
-            url = image.get('preview', [{}])[0].get('url', '')
-            alt_text = meta.get('altText') or meta.get('alt_text') or ''
+            url = meta.get('url', '')
+            filename = meta.get('path') or meta.get('name') or ''
+            # Caption node; fall back to the file's own altText/alt_text.
+            alt_text = (
+                _caption(image)
+                or meta.get('altText') or meta.get('alt_text') or ''
+            )
             type = meta.get('type', '')
             if type and type.startswith('video/'):
                 continue  # Skip videos
-            entry = {'image': image_cache.get(url), 'alt_text': alt_text, 'url': url}
+            entry = {'alt_text': alt_text, 'url': url, 'filename': filename}
 
-            if not alt_text:
-                continue
-
-            if 'Available' not in visibility and 'Public' not in visibility: 
+            if 'Available' not in visibility and 'Public' not in visibility:
                 continue
 
             is_main = (
-                ('Main Image for All Reports' in visibility
-                 or 'Main Image for Public Website' in visibility)
-                and 'Square Shot' in visibility
+                'Main Image for All Reports' in visibility
+                or 'Main Image for Public Website' in visibility
             )
-            is_main_boundary = (
-                'Main Image for Maps' in visibility
-                and 'Square Shot' in visibility
-            )
-            name_or_alt = f"{name} {alt_text.lower()}"
-            is_boundary = any(re.search(rf'\b{term}\b', name_or_alt) for term in boundary_map_terms)
-            is_site_plan = any(re.search(rf'\b{term}\b', name_or_alt) for term in site_plan_terms)
+            is_main_boundary = 'Main Image for Maps' in visibility
+            is_boundary = 'Boundary Map' in visibility
+            is_site_plan = 'Site Plan' in visibility
 
+            # Slots are non-exclusive: one image may carry several visibility
+            # tags (e.g. both "Main Image for All Reports" and "Boundary Map")
+            # and must then appear in every slot it's tagged for. Each slot gets
+            # its own copy because _attach_iiif_images mutates an entry's `image`
+            # in place per crop region, so a shared dict would have its first
+            # crop clobbered by the second.
+            matched = False
             if is_main and not resource.get('main_image'):
-                resource['main_image'] = entry
-            elif is_main_boundary and not resource.get('main_boundary'):
-                resource['main_boundary'] = entry
-            elif is_boundary:
+                resource['main_image'] = dict(entry)
+                matched = True
+            if is_main_boundary and not resource.get('main_boundary'):
+                resource['main_boundary'] = dict(entry)
+                matched = True
+            if is_boundary:
                 resource['boundary_map'].append({**entry, 'type': ['main', 'square']})
-            elif is_site_plan:
-                resource['site_plan'].append(entry)
-            else:
-                resource['illustrations'].append(entry)
-        
-        # if no main image set as the first image
-        if 'main_image' not in resource and len(resource['illustrations']) > 0:
-            first_url = resource['illustrations'][0]['url']
-            alt_text = resource['illustrations'][0]['alt_text']
-            resource['main_image'] = {'image': image_cache.get(first_url), 'alt_text': alt_text, 'url': first_url}
-        else:
-            resource['main_image'] = resource.get('main_image', {'image': None, 'alt_text': '', 'url': ''})
+                matched = True
+            if is_site_plan:
+                resource['site_plan'].append(dict(entry))
+                matched = True
+            if not matched:
+                resource['illustrations'].append(dict(entry))
 
-        # set the main boundary image
+        # if no main image, fall back to the first illustration
+        if 'main_image' not in resource and len(resource['illustrations']) > 0:
+            resource['main_image'] = dict(resource['illustrations'][0])
+        else:
+            resource['main_image'] = resource.get('main_image', {'alt_text': '', 'url': ''})
+
+        square_entries = [resource['main_image']]
+
+        # main_boundary falls back to the first Boundary Map; a copy so it can be cropped independently.
+        if not resource.get('main_boundary') and resource['boundary_map']:
+            resource['main_boundary'] = dict(resource['boundary_map'][0])
+
+        full_entries = resource['boundary_map'] + resource['site_plan'] + resource['illustrations']
+        self._attach_iiif_images(square_entries, region='square')
+        self._attach_iiif_images(full_entries, region='full')
+
+        # Front-page main map: chrome-trim crop only for A4-portrait sheets, else centred square.
+        main_boundary = resource.get('main_boundary')
+        if main_boundary:
+            identifier = (
+                main_boundary.get('filename')
+                or iiif_identifier_from_url(main_boundary.get('url', ''))
+            )
+            size = iiif_image_size(identifier) if identifier else None
+            region = BOUNDARY_MAP_REGION if size and _is_a4_portrait(*size) else 'square'
+            self._attach_iiif_images([main_boundary], region=region)
+
+        # set the main boundary placeholder if there isn't one
         if 'main_boundary' not in resource:
             no_map = load_image('no_boundary_map.jpg', Path('static/images'))
             resource['main_boundary'] = {'image': no_map, 'alt_text': 'No boundary map', 'url': ''}
 
-        # check if the main image and boundary image are the same and remove the boundary image if so
-        if not resource['main_image']['url'] and resource['main_boundary']['url']:
+        # if there's no main image but there is a boundary, use the boundary as the main image
+        if not resource['main_image'].get('url') and resource['main_boundary'].get('url'):
             resource['main_image'] = resource['main_boundary']
             resource['main_boundary'] = {}
+
+    def _attach_iiif_images(self, entries, region):
+        """
+        Populate each entry's ``image`` (BytesIO) from the IIIF image server,
+        cropping per ``region``. IIIF is the single source of truth: an image
+        IIIF can't serve gets ``image=None`` and is skipped at render time.
+        Mutates the entries in place.
+        """
+        if not entries:
+            return
+
+        # Filename-based IIIF URLs via the public /iiifserver proxy. Prefer the
+        # explicit filename; fall back to the last path segment of the stored
+        # URL (handles blob URLs whose segment is the filename).
+        for entry in entries:
+            identifier = entry.get('filename') or iiif_identifier_from_url(entry.get('url', ''))
+            entry['_iiif_url'] = build_iiif_url(identifier, region=region)
+        iiif_cache = download_images_batch([e['_iiif_url'] for e in entries if e.get('_iiif_url')])
+
+        for entry in entries:
+            entry['image'] = iiif_cache.get(entry.pop('_iiif_url', ''))
 
     def _map_geometry(self, resource: Dict[str, Any]) -> None:
         """
