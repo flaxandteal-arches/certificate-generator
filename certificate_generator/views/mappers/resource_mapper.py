@@ -177,7 +177,7 @@ class ResourceMapper:
         # main_boundary falls back to the first Boundary Map; a copy so it can be cropped independently.
         if not resource.get('main_boundary') and resource['boundary_map']:
             resource['main_boundary'] = dict(resource['boundary_map'][0])
-
+            
         full_entries = resource['boundary_map'] + resource['site_plan'] + resource['illustrations']
         self._attach_iiif_images(square_entries, region='square')
         self._attach_iiif_images(full_entries, region='full')

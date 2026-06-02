@@ -16,8 +16,8 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 
 from io import BytesIO
-from certificate_generator.views.processors.richtext import mark2html, apply_list_indentation, apply_heading_spacing
-from certificate_generator.views.utils.image_utils import load_image, get_image_dimensions
+from certificate_generator.views.processors.richtext import mark2html, apply_list_indentation, apply_heading_spacing, fix_invalid_tables
+from certificate_generator.views.utils.image_utils import load_image, normalise_image_bytes
 
 
 class DocumentTemplateProcessor:
@@ -63,12 +63,14 @@ class DocumentTemplateProcessor:
             if not raw:
                 return ""
 
-            # Validate the bytes actually decode as an image before embedding.
-            try:
-                img_width, img_height = get_image_dimensions(BytesIO(raw))
-            except Exception:
-                logging.warning("to_image: skipping undecodable image (%d bytes)", len(raw))
+            # Fully decode and re-encode to clean JPEG bytes before embedding.
+            # A header-only check would pass a valid-header/corrupt-body download
+            # and embed it (making Word open the doc read-only); a full decode +
+            # re-encode rejects bad images and normalises good ones.
+            normalised = normalise_image_bytes(raw)
+            if normalised is None:
                 return ""
+            raw, img_width, img_height = normalised
 
             # Each InlineImage gets its own fresh stream so a shared/exhausted
             # BytesIO can't serialise as an empty media part.
@@ -97,6 +99,9 @@ class DocumentTemplateProcessor:
         self.doc.render(context, env, autoescape=True)
         apply_list_indentation(self.doc)
         apply_heading_spacing(self.doc)
+        # Repair tables left empty by missing data — an empty <w:tbl> makes
+        # Word Online open the document read-only.
+        fix_invalid_tables(self.doc)
 
     def _prepare_context(self, mapping: Dict[str, Any]) -> Dict[str, Any]:
         """

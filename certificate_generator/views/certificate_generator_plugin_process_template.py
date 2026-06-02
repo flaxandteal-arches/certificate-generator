@@ -8,11 +8,14 @@ from django.http import HttpResponse, JsonResponse
 from django.views import View
 from pathlib import Path
 from certificate_generator.views.services import document_service
-from certificate_generator.views.loaders import ResourceLoader
-from certificate_generator.views.mappers import ResourceMapper
+from certificate_generator.views.loaders.versioned_resource_orchestrator import build_template_data
 from certificate_generator.views.registry.template_registry import TemplateRegistry
 
 logger = logging.getLogger(__name__)
+
+# Templates that render the finalised (Active) version as "existing" data
+# alongside the selected version's "updated" data (existing_* keys).
+EXISTING_FLOW_TEMPLATES = {"heritage-recommendation-vary"}
 
 
 class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
@@ -29,6 +32,9 @@ class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
 
             req_body = json.loads(req.body)
             resource_id = req_body.get('resource_id')
+            # The user-selected resource version; falls back to resource_id for
+            # backward compatibility / non-versioned resources.
+            resource_version_id = req_body.get('resource_version_id')
             resource_name = req_body.get('resource_name')
             template_id = req_body.get('template_id')
             template_version = req_body.get('template_version')
@@ -51,13 +57,17 @@ class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
 
             BASE_DIR = Path(__file__).parent.parent
             TEMPLATES_DIR = BASE_DIR / "report_templates"
-            document_service_svc = document_service.DocumentService(TemplateRegistry(TEMPLATES_DIR))
+            registry = TemplateRegistry(TEMPLATES_DIR)
+            document_service_svc = document_service.DocumentService(registry)
 
-            # Fetch + convert only the selected resource via the Arches ORM
-            # and alizarin.tiles_to_json_tree, instead of batch-converting the
-            # whole DB.
-            resource_tree = ResourceLoader().load(resource_id)
-            data = ResourceMapper(resource_tree).load_resource()
+            # The selected version supplies the "updated" data; for the
+            # existing-flow templates the finalised (Active) version is merged
+            # in as existing_* data. Non-versioned resources just use resource_id.
+            selected_resource_id = resource_version_id or resource_id
+            slug = registry.resolve_slug(template_id)
+            include_existing = slug in EXISTING_FLOW_TEMPLATES
+
+            data = build_template_data(selected_resource_id, include_existing=include_existing)
             # Resolve concept leaves to their labels (language already handled in ResourceMapper).
             mapped_data = resolve_concepts(data)
 

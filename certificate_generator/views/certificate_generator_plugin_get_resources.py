@@ -19,6 +19,7 @@ from django.http import JsonResponse
 from django.views import View
 
 from arches.app.models.models import ResourceInstance, TileModel
+from arches_resource_version_manager.models import VersionedResource
 
 logger = logging.getLogger(__name__)
 
@@ -57,15 +58,25 @@ class CertificateGeneratorPluginGetResources(LoginRequiredMixin, View):
                 .order_by("place_id", "display_name")
             )
 
-            resources = [
-                {
-                    "resource_id": str(row["resourceinstanceid"]),
+            # Group the versions to remove duplicates in dropdown
+            group_by_instance = {
+                str(v["pk"]): v["resource_group_id"]
+                for v in VersionedResource.objects.values("pk", "resource_group_id")
+            }
+
+            deduped = {}
+            for row in qs:
+                resource_id = str(row["resourceinstanceid"])
+                group = group_by_instance.get(resource_id)
+                # Key by group so all versions collapse to one. Any instance in
+                # the group works as the representative id — the version dropdown
+                # re-resolves the group from it and defaults to the Draft.
+                key = group if group is not None else resource_id
+                deduped.setdefault(key, {
+                    "resource_id": resource_id,
                     "name": row["display_name"] or "",
-                    "place_id": row["place_id"] or "",
-                }
-                for row in qs
-            ]
-            return JsonResponse({"resources": resources}, status=200)
+                })
+            return JsonResponse({"resources": list(deduped.values())}, status=200)
 
         except Exception:
             logger.exception("Error listing resources")

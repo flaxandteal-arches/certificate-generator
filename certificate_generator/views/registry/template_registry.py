@@ -178,3 +178,17 @@ class TemplateRegistry:
                 return template
 
         return None
+
+    def resolve_slug(self, template_id: str) -> Optional[str]:
+        """Return the canonical template slug for a template_id, resolving
+        legacy_ids. Returns None if the template is unknown."""
+        templates = self._manifest.get("templates", {})
+
+        if template_id in templates:
+            return template_id
+
+        for slug, template in templates.items():
+            if template_id in template.get("legacy_ids", []):
+                return slug
+
+        return None

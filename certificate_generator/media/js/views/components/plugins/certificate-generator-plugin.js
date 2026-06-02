@@ -42,14 +42,56 @@ function ViewModel() {
                 placeholder: "Search resources...",
                 options: self.resources.map(r => ({
                     value: r.resource_id,
-                    text: `${r.place_id || ""} ${r.name || ""}`.trim() || r.resource_id,
+                    text: r.name || r.resource_id,
                 })),
                 searchField: ["text"],
                 maxOptions: 100,
+                onChange: (value) => self.loadResourceVersions(value),
             });
         } catch (error) {
             console.error("Error loading resources:", error);
             self.showMessage("Failed to load resources: " + error.message, "error");
+        }
+    };
+
+    self.loadResourceVersions = async function(resourceId) {
+        const group = document.getElementById("resourceVersionGroup");
+        const select = document.getElementById("resourceVersionSelect");
+        select.innerHTML = "";
+
+        if (!resourceId) {
+            group.style.display = "none";
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${API_BASE}/certificate-generator/get-resource-versions/?resource_id=${encodeURIComponent(resourceId)}`
+            );
+            const data = await response.json();
+
+            // Not versioned (legacy item) — hide the picker, generate uses resource_id.
+            if (!data.is_versioned || !(data.versions || []).length) {
+                group.style.display = "none";
+                return;
+            }
+
+            let draftValue = null;
+            for (const v of data.versions) {
+                const opt = document.createElement("option");
+                opt.value = v.resource_id;
+                opt.textContent = `v${v.version_label} (${v.lifecycle_state})`;
+                select.appendChild(opt);
+                if (v.lifecycle_state === "Draft" && draftValue === null) {
+                    draftValue = v.resource_id;
+                }
+            }
+            // Default to the Draft (the natural "updated" choice), else the newest.
+            select.value = draftValue || data.versions[data.versions.length - 1].resource_id;
+            group.style.display = "block";
+        } catch (error) {
+            console.error("Error loading resource versions:", error);
+            group.style.display = "none";
         }
     };
 
@@ -159,6 +201,14 @@ function ViewModel() {
         const resourceId = resource.value;
         const resourceName = resource.options[resource.selectedIndex]?.text || "N/A";
 
+        // The selected version (when the resource is versioned); the version
+        // group is hidden for non-versioned resources, so this stays empty.
+        const versionGroup = document.getElementById("resourceVersionGroup");
+        const resourceVersionId =
+            versionGroup.style.display !== "none"
+                ? document.getElementById("resourceVersionSelect").value
+                : null;
+
         const templateValue = document.getElementById("templateSelect").value;
         let templateId, templateVersion;
         if (templateValue.includes(":")) {
@@ -189,6 +239,7 @@ function ViewModel() {
                 },
                 body: JSON.stringify({
                     resource_id: resourceId,
+                    resource_version_id: resourceVersionId,
                     resource_name: resourceName,
                     template_id: templateId,
                     template_version: templateVersion,

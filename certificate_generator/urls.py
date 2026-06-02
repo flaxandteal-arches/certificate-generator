@@ -2,6 +2,7 @@ from django.urls import path
 from certificate_generator.views import (
     certificate_generator_plugin_get_templates,
     certificate_generator_plugin_get_resources,
+    certificate_generator_plugin_get_resource_versions,
     certificate_generator_plugin_process_template,
 )
 
@@ -15,6 +16,11 @@ urlpatterns = [
         "certificate-generator/get-resources/",
         certificate_generator_plugin_get_resources.CertificateGeneratorPluginGetResources.as_view(),
         name="certificate-generator-get-resources",
+    ),
+    path(
+        "certificate-generator/get-resource-versions/",
+        certificate_generator_plugin_get_resource_versions.CertificateGeneratorPluginGetResourceVersions.as_view(),
+        name="certificate-generator-get-resource-versions",
     ),
     path(
         "certificate-generator/process-template/",

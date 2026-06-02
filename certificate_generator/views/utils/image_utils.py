@@ -15,7 +15,7 @@ from django.conf import settings
 from PIL import Image
 
 
-def download_image(url: str, timeout: int = 5) -> Optional[BytesIO]:
+def download_image(url: str, timeout: int = 30) -> Optional[BytesIO]:
     """
     Download an image from a URL and return it as a BytesIO object.
 
@@ -34,6 +34,29 @@ def download_image(url: str, timeout: int = 5) -> Optional[BytesIO]:
         return BytesIO(response.content)
     except requests.RequestException as e:
         logging.warning(f"Failed to download image from URL: {url} - {e}")
+        return None
+
+
+def normalise_image_bytes(raw: bytes) -> Optional[Tuple[bytes, int, int]]:
+    """
+    Fully decode image bytes and re-encode them as a clean RGB JPEG.
+
+    Returns ``(jpeg_bytes, width, height)``, or ``None`` if the bytes can't be
+    decoded. Unlike a header-only dimension read, this forces a complete pixel
+    decode (``load()``), so a partially-corrupt download — valid header but bad
+    body — is rejected rather than embedded (which would make Word open the
+    document read-only). The re-encode also normalises whatever the IIIF server
+    returned into bytes Word reliably reads.
+    """
+    try:
+        with Image.open(BytesIO(raw)) as im:
+            im.load()
+            rgb = im.convert("RGB")
+        buf = BytesIO()
+        rgb.save(buf, format="JPEG", quality=85)
+        return buf.getvalue(), rgb.width, rgb.height
+    except Exception as e:
+        logging.warning("normalise_image_bytes: undecodable image (%d bytes): %s", len(raw or b""), e)
         return None
 
 
@@ -87,7 +110,7 @@ def load_image(img: str, images_dir: Optional[Path] = None) -> Optional[BytesIO]
         return BytesIO(f.read())
 
 
-def download_images_batch(urls: List[str], max_workers: int = 10, timeout: int = 5) -> Dict[str, Optional[BytesIO]]:
+def download_images_batch(urls: List[str], max_workers: int = 10, timeout: int = 30) -> Dict[str, Optional[BytesIO]]:
     """
     Download multiple images concurrently using a thread pool.
 
@@ -119,15 +142,6 @@ def download_images_batch(urls: List[str], max_workers: int = 10, timeout: int =
 def is_url(value: str) -> bool:
     """Check if a string is a URL."""
     return isinstance(value, str) and value.startswith(('http://', 'https://'))
-
-
-# Map a source file extension to a Cantaloupe-supported IIIF output format,
-# so an image is returned in its original format (e.g. a PNG isn't flattened
-# to JPEG, losing transparency). Anything unrecognised falls back to jpg.
-_IIIF_FORMATS = {
-    'jpg': 'jpg', 'jpeg': 'jpg', 'png': 'png', 'gif': 'gif',
-    'tif': 'tif', 'tiff': 'tif', 'webp': 'webp',
-}
 
 
 def iiif_identifier_from_url(url: str) -> str:
@@ -173,8 +187,7 @@ def build_iiif_url(identifier: str, region: str = 'full', size: str = 'full') ->
     The proxy is used (rather than the internal Cantaloupe endpoint) because the
     certificate generator only has egress to public addresses, not to the
     internal cantaloupe service. settings.PUBLIC_SERVER_ADDRESS is the public
-    ingress URL and is set per-environment. The output {format} matches the
-    identifier's extension.
+    ingress URL and is set per-environment. Output is always JPEG.
 
     Args:
         identifier: the image filename (see iiif_identifier_from_url)
@@ -186,6 +199,7 @@ def build_iiif_url(identifier: str, region: str = 'full', size: str = 'full') ->
     base = getattr(settings, 'PUBLIC_SERVER_ADDRESS', None)
     if not identifier or not base:
         return ''
-    ext = identifier.rsplit('.', 1)[-1].lower() if '.' in identifier else ''
-    fmt = _IIIF_FORMATS.get(ext, 'jpg')
-    return f"{base.rstrip('/')}/iiifserver/iiif/2/{quote(identifier)}/{region}/{size}/0/default.{fmt}"
+    # Always request JPEG output. The doc has a white background (no transparency
+    # needed), and Cantaloupe's full-size PNG render of large maps can produce
+    # bytes PIL can't decode, whereas its JPEG render is reliable.
+    return f"{base.rstrip('/')}/iiifserver/iiif/2/{quote(identifier)}/{region}/{size}/0/default.jpg"

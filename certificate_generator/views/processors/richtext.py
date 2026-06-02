@@ -2,6 +2,8 @@ import re
 
 import markdown
 from bs4 import BeautifulSoup
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.shared import Pt, Twips
 from docxtpl import RichText as BaseRichText
 
@@ -258,6 +260,27 @@ def apply_list_indentation(doc):
         for row in table.rows:
             for cell in row.cells:
                 _fix(cell.paragraphs)
+
+
+def fix_invalid_tables(doc):
+    """Post-render: repair tables left structurally invalid by missing data.
+
+    Args:
+        doc: A DocxTemplate instance (after render).
+    """
+    for tbl in list(doc.docx.element.iter(qn('w:tbl'))):
+        parent = tbl.getparent()
+        if parent is None:
+            continue
+        # Empty table (no rows) -> swap for an empty paragraph (always valid,
+        # never leaves two tables adjacent or a trailing table).
+        if tbl.find(qn('w:tr')) is None:
+            parent.replace(tbl, OxmlElement('w:p'))
+            continue
+        # Every cell must contain at least one paragraph (or nested table).
+        for tc in tbl.iter(qn('w:tc')):
+            if tc.find(qn('w:p')) is None and tc.find(qn('w:tbl')) is None:
+                tc.append(OxmlElement('w:p'))
 
 
 def apply_heading_spacing(doc):
