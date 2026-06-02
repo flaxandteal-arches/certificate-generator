@@ -16,7 +16,7 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 
 from io import BytesIO
-from certificate_generator.views.processors.richtext import mark2html, apply_list_indentation, apply_heading_spacing
+from certificate_generator.views.processors.richtext import mark2html, apply_list_indentation, apply_heading_spacing, fix_invalid_tables
 from certificate_generator.views.utils.image_utils import load_image, normalise_image_bytes
 
 
@@ -99,6 +99,9 @@ class DocumentTemplateProcessor:
         self.doc.render(context, env, autoescape=True)
         apply_list_indentation(self.doc)
         apply_heading_spacing(self.doc)
+        # Repair tables left empty by missing data — an empty <w:tbl> makes
+        # Word Online open the document read-only.
+        fix_invalid_tables(self.doc)
 
     def _prepare_context(self, mapping: Dict[str, Any]) -> Dict[str, Any]:
         """
