@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Certificate generator plugin for Arches 8"
 requires-python = ">=3.10"
 dependencies = [
+    "arches>=8.2.0a2,<8.3.0",
     "beautifulsoup4==4.14.3",
     "docxtpl==0.20.2",
     "Jinja2==3.1.6",
