@@ -1,5 +1,6 @@
 import logging
 import math
+import re
 from pathlib import Path
 from typing import Dict, Any
 
@@ -31,6 +32,20 @@ BOUNDARY_MAP_REGION = (
 )
 
 _A4_ASPECT_TOLERANCE = 0.06  # how far a sheet may stray from A4 portrait
+
+# Fail-safe name/caption terms. Classification is driven by RDM visibility tags
+# ('Boundary Map' / 'Site Plan'), but legacy resources predate the tagging and
+# carry none, so they'd fall through to illustrations. When the relevant tag is
+# absent we fall back to the pre-tag behaviour: word-match the filename/caption.
+_SITE_PLAN_TERMS = ['site plan', 'siteplan', 'site_plan', 'floor plan', 'plan']
+_BOUNDARY_MAP_TERMS = ['boundary map', 'boundary_map', 'boundarymap', 'map', 'boundary']
+_SQUARE_TERMS = ['square', 'sq']
+
+
+def _name_matches(text: str, terms) -> bool:
+    """True if any term appears as a whole word in text (case-insensitive)."""
+    text = text.lower()
+    return any(re.search(rf'\b{re.escape(term)}\b', text) for term in terms)
 
 
 def _is_a4_portrait(width: int, height: int) -> bool:
@@ -143,7 +158,19 @@ class ResourceMapper:
             is_main_boundary = 'Main Image for Maps' in visibility
             is_boundary = 'Boundary Map' in visibility
             is_site_plan = 'Site Plan' in visibility
+            name_or_alt = f"{filename} {alt_text}"
 
+            # Fail-safe for legacy resources never tagged: if neither map/plan
+            # tag is present, fall back to word-matching the filename/caption.
+            if not is_boundary and not is_site_plan:
+                is_boundary = _name_matches(name_or_alt, _BOUNDARY_MAP_TERMS)
+                is_site_plan = _name_matches(name_or_alt, _SITE_PLAN_TERMS)
+
+            is_square = (
+                'Square' in visibility
+                or 'Square Shot' in visibility
+                or _name_matches(name_or_alt.replace('_', ' '), _SQUARE_TERMS)
+            )
             # Slots are non-exclusive: one image may carry several visibility
             # tags (e.g. both "Main Image for All Reports" and "Boundary Map")
             # and must then appear in every slot it's tagged for. Each slot gets
@@ -157,13 +184,13 @@ class ResourceMapper:
             if is_main_boundary and not resource.get('main_boundary'):
                 resource['main_boundary'] = dict(entry)
                 matched = True
-            if is_boundary:
+            if is_boundary and not is_square:
                 resource['boundary_map'].append({**entry, 'type': ['main', 'square']})
                 matched = True
-            if is_site_plan:
+            if is_site_plan and not is_square:
                 resource['site_plan'].append(dict(entry))
                 matched = True
-            if not matched:
+            if not matched and not is_square:
                 resource['illustrations'].append(dict(entry))
 
         # if no main image, fall back to the first illustration
@@ -272,18 +299,19 @@ class ResourceMapper:
         Args:
             resource: The resource dictionary with potential lot on plan fields.
         """
-        area_assignments = resource.get('location_data', {}).get('area_assignments', {}).get('area_assignment', [])
-        if not area_assignments:
+        lot_on_plan_entries = resource.get('location_data', {}).get('lot_on_plan', [])
+        if isinstance(lot_on_plan_entries, dict):  # single tile collapses to a dict
+            lot_on_plan_entries = [lot_on_plan_entries]
+        if not lot_on_plan_entries:
             resource['mapped_lot_on_plan'] = None
             return resource
-        
+
         lot_on_plans = []
-        for assignment in area_assignments:
-            for lop in assignment.get('lot_on_plan', []):
-                lot = lop.get('lot', '')
-                plan = lop.get('plan', '')
-                if lot and plan:
-                    lot_on_plans.append(f'{lot} {plan}')
+        for lop in lot_on_plan_entries:
+            lot = lop.get('lot', '')
+            plan = lop.get('plan', '')
+            if lot and plan:
+                lot_on_plans.append(f'{lot} {plan}')
         
         third = math.ceil(len(lot_on_plans) / 3)
         col1 = lot_on_plans[:third]
