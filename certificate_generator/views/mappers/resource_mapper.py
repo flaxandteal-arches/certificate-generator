@@ -39,6 +39,7 @@ _A4_ASPECT_TOLERANCE = 0.06  # how far a sheet may stray from A4 portrait
 # absent we fall back to the pre-tag behaviour: word-match the filename/caption.
 _SITE_PLAN_TERMS = ['site plan', 'siteplan', 'site_plan', 'floor plan', 'plan']
 _BOUNDARY_MAP_TERMS = ['boundary map', 'boundary_map', 'boundarymap', 'map', 'boundary']
+_SQUARE_TERMS = ['square', 'sq']
 
 
 def _name_matches(text: str, terms) -> bool:
@@ -157,14 +158,19 @@ class ResourceMapper:
             is_main_boundary = 'Main Image for Maps' in visibility
             is_boundary = 'Boundary Map' in visibility
             is_site_plan = 'Site Plan' in visibility
+            name_or_alt = f"{filename} {alt_text}"
 
             # Fail-safe for legacy resources never tagged: if neither map/plan
             # tag is present, fall back to word-matching the filename/caption.
             if not is_boundary and not is_site_plan:
-                name_or_alt = f"{filename} {alt_text}"
                 is_boundary = _name_matches(name_or_alt, _BOUNDARY_MAP_TERMS)
                 is_site_plan = _name_matches(name_or_alt, _SITE_PLAN_TERMS)
 
+            is_square = (
+                'Square' in visibility
+                or 'Square Shot' in visibility
+                or _name_matches(name_or_alt.replace('_', ' '), _SQUARE_TERMS)
+            )
             # Slots are non-exclusive: one image may carry several visibility
             # tags (e.g. both "Main Image for All Reports" and "Boundary Map")
             # and must then appear in every slot it's tagged for. Each slot gets
@@ -178,13 +184,13 @@ class ResourceMapper:
             if is_main_boundary and not resource.get('main_boundary'):
                 resource['main_boundary'] = dict(entry)
                 matched = True
-            if is_boundary:
+            if is_boundary and not is_square:
                 resource['boundary_map'].append({**entry, 'type': ['main', 'square']})
                 matched = True
-            if is_site_plan:
+            if is_site_plan and not is_square:
                 resource['site_plan'].append(dict(entry))
                 matched = True
-            if not matched:
+            if not matched and not is_square:
                 resource['illustrations'].append(dict(entry))
 
         # if no main image, fall back to the first illustration
