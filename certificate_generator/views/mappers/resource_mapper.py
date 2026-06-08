@@ -1,5 +1,6 @@
 import logging
 import math
+import re
 from pathlib import Path
 from typing import Dict, Any
 
@@ -31,6 +32,19 @@ BOUNDARY_MAP_REGION = (
 )
 
 _A4_ASPECT_TOLERANCE = 0.06  # how far a sheet may stray from A4 portrait
+
+# Fail-safe name/caption terms. Classification is driven by RDM visibility tags
+# ('Boundary Map' / 'Site Plan'), but legacy resources predate the tagging and
+# carry none, so they'd fall through to illustrations. When the relevant tag is
+# absent we fall back to the pre-tag behaviour: word-match the filename/caption.
+_SITE_PLAN_TERMS = ['site plan', 'siteplan', 'site_plan', 'floor plan', 'plan']
+_BOUNDARY_MAP_TERMS = ['boundary map', 'boundary_map', 'boundarymap', 'map', 'boundary']
+
+
+def _name_matches(text: str, terms) -> bool:
+    """True if any term appears as a whole word in text (case-insensitive)."""
+    text = text.lower()
+    return any(re.search(rf'\b{re.escape(term)}\b', text) for term in terms)
 
 
 def _is_a4_portrait(width: int, height: int) -> bool:
@@ -143,6 +157,13 @@ class ResourceMapper:
             is_main_boundary = 'Main Image for Maps' in visibility
             is_boundary = 'Boundary Map' in visibility
             is_site_plan = 'Site Plan' in visibility
+
+            # Fail-safe for legacy resources never tagged: if neither map/plan
+            # tag is present, fall back to word-matching the filename/caption.
+            if not is_boundary and not is_site_plan:
+                name_or_alt = f"{filename} {alt_text}"
+                is_boundary = _name_matches(name_or_alt, _BOUNDARY_MAP_TERMS)
+                is_site_plan = _name_matches(name_or_alt, _SITE_PLAN_TERMS)
 
             # Slots are non-exclusive: one image may carry several visibility
             # tags (e.g. both "Main Image for All Reports" and "Boundary Map")
