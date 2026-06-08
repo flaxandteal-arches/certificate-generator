@@ -299,18 +299,19 @@ class ResourceMapper:
         Args:
             resource: The resource dictionary with potential lot on plan fields.
         """
-        area_assignments = resource.get('location_data', {}).get('area_assignments', {}).get('area_assignment', [])
-        if not area_assignments:
+        lot_on_plan_entries = resource.get('location_data', {}).get('lot_on_plan', [])
+        if isinstance(lot_on_plan_entries, dict):  # single tile collapses to a dict
+            lot_on_plan_entries = [lot_on_plan_entries]
+        if not lot_on_plan_entries:
             resource['mapped_lot_on_plan'] = None
             return resource
-        
+
         lot_on_plans = []
-        for assignment in area_assignments:
-            for lop in assignment.get('lot_on_plan', []):
-                lot = lop.get('lot', '')
-                plan = lop.get('plan', '')
-                if lot and plan:
-                    lot_on_plans.append(f'{lot} {plan}')
+        for lop in lot_on_plan_entries:
+            lot = lop.get('lot', '')
+            plan = lop.get('plan', '')
+            if lot and plan:
+                lot_on_plans.append(f'{lot} {plan}')
         
         third = math.ceil(len(lot_on_plans) / 3)
         col1 = lot_on_plans[:third]
