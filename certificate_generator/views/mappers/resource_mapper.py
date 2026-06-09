@@ -272,12 +272,13 @@ class ResourceMapper:
         Args:
             resource: The resource dictionary with potential address fields.
         """
+        empty_address = {'street': '', 'town': '', 'county': '', 'postcode': ''}
         addresses = resource.get('location_data', {}).get('addresses', [])
         if not addresses:
-            resource['address'] = None
+            resource['address'] = empty_address
             return resource
 
-        resource['address'] = {'street': '', 'town': '', 'county': '', 'postcode': ''}
+        resource['address'] = dict(empty_address)
         for addr in addresses:
             street = addr.get('street', {}).get('street_value', '')
             lga = (addr.get('lga') or [''])[0]
@@ -286,6 +287,7 @@ class ResourceMapper:
                 resource['address'] = {
                     'street': street,
                     'town': town,
+                    'county': resource['address'].get('county', ''),
                     'postcode': addr.get('postcode', {}).get('postcode_value', ''),
                 }
             if lga:
