@@ -43,7 +43,7 @@ class DocumentTemplateProcessor:
         """
         # Prepare context for text placeholders
         context = self._prepare_context(data)
-        env = jinja2.Environment()
+        env = jinja2.Environment(undefined=jinja2.ChainableUndefined)
         env.filters["mark2html"] = mark2html
         def to_image(img, width=None, height=None, max_width=155, max_height=180, anchor=None):
             # Resolve the source to raw bytes. Anything that doesn't yield real,
@@ -89,13 +89,24 @@ class DocumentTemplateProcessor:
                 yield (n + 1), i
         env.filters["enumeratep1"] = enumeratep1
         def to_written_date(isodate):
-            return datetime.fromisoformat(isodate).strftime("%d %B %Y")
+            if not isinstance(isodate, str) or not isodate:
+                return ""
+            try:
+                return datetime.fromisoformat(isodate).strftime("%d %B %Y")
+            except ValueError:
+                return ""
         env.filters["to_written_date"] = to_written_date
         def format_key(text):
+            if not isinstance(text, str):
+                return ""
             return text.replace("_", " ")
         env.filters["format_key"] = format_key
         # Render the template with Jinja2 (text replacements)
-        env.filters["capitalise"] = lambda s: s.lower().capitalize()
+        def capitalise(s):
+            if not isinstance(s, str) or not s:
+                return ""
+            return s.lower().capitalize()
+        env.filters["capitalise"] = capitalise
         self.doc.render(context, env, autoescape=True)
         apply_list_indentation(self.doc)
         apply_heading_spacing(self.doc)
