@@ -148,7 +148,7 @@ class ResourceMapper:
                 continue  # Skip videos
             entry = {'alt_text': alt_text, 'url': url, 'filename': filename}
 
-            if 'Available' not in visibility and 'Public' not in visibility:
+            if 'Report' not in visibility:
                 continue
 
             is_main = (
