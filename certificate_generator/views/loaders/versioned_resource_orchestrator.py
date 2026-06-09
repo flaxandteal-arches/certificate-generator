@@ -62,11 +62,32 @@ def build_template_data(selected_resource_id: str, *, include_existing: bool) ->
             "resource_group_id", flat=True
         ).get(pk=selected_resource_id)
     except VersionedResource.DoesNotExist:
+        logger.warning(
+            "existing-flow template requested but resource %s is not version-managed; "
+            "rendering without existing_* data",
+            selected_resource_id,
+        )
         return updated  # not versioned
 
     active = VersionedResource.objects.get_current_final(group_id)
-    if active is None or str(active.pk) == str(selected_resource_id):
-        return updated  # no finalised version, or the selection is the final one
+    if active is None:
+        logger.warning(
+            "existing-flow template requested but group %s has no finalised (Active) "
+            "version; rendering without existing_* data",
+            group_id,
+        )
+        return updated
+    if str(active.pk) == str(selected_resource_id):
+        logger.info(
+            "existing-flow: selected resource %s is itself the finalised version; "
+            "rendering without existing_* data",
+            selected_resource_id,
+        )
+        return updated
 
     existing = _map(str(active.pk))
+    logger.info(
+        "existing-flow: merged existing_* data from Active version %s into selection %s",
+        active.pk, selected_resource_id,
+    )
     return merge_existing(updated, existing)
