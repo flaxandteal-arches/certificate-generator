@@ -148,16 +148,15 @@ class ResourceMapper:
                 continue  # Skip videos
             entry = {'alt_text': alt_text, 'url': url, 'filename': filename}
 
-            if 'Report' not in visibility:
+            if 'Available' not in visibility:
                 continue
 
-            is_main = (
-                'Main Image for All Reports' in visibility
-                or 'Main Image for Public Website' in visibility
-            )
+            is_main = 'Main Image for All Reports' in visibility
+            
             is_main_boundary = 'Main Image for Maps' in visibility
             is_boundary = 'Boundary Map' in visibility
             is_site_plan = 'Site Plan' in visibility
+            is_report = 'Report' in visibility
             name_or_alt = f"{filename} {alt_text}"
 
             # Fail-safe for legacy resources never tagged: if neither map/plan
@@ -190,7 +189,7 @@ class ResourceMapper:
             if is_site_plan and not is_square:
                 resource['site_plan'].append(dict(entry))
                 matched = True
-            if not matched and not is_square:
+            if is_report and not is_square:
                 resource['illustrations'].append(dict(entry))
 
         # if no main image, fall back to the first illustration
