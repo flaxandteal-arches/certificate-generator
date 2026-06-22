@@ -151,10 +151,8 @@ class ResourceMapper:
             if 'Available' not in visibility:
                 continue
 
-            is_main = (
-                'Main Image for All Reports' in visibility
-                or 'Main Image for Public Website' in visibility
-            )
+            is_main = 'Main Image for All Reports' in visibility
+            
             is_main_boundary = 'Main Image for Maps' in visibility
             is_boundary = 'Boundary Map' in visibility
             is_site_plan = 'Site Plan' in visibility
