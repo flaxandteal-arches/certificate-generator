@@ -135,7 +135,11 @@ def convert_geometry_from_resource(resource: Dict[str, Any]) -> Optional[Dict[st
             logging.warning("No datum (current_base_map_name) found in resource geometry data; skipping")
             continue
 
-        mga_value = convert_to_mga(longitude, latitude, datum)
+        try:
+            mga_value = convert_to_mga(longitude, latitude, datum)
+        except ValueError:
+            logging.warning("Could not convert; skipping")
+            continue
         converted_geometries.append(mga_value)
         
     return converted_geometries
