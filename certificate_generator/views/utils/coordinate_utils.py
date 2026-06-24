@@ -32,7 +32,7 @@ def get_mga_zone(longitude: float) -> int:
     return math.floor((longitude + 180) / 6) + 1
 
 
-def get_epsg_code(longitude: float, datum: str) -> int:
+def get_epsg_code(longitude: float, datum: str) -> Optional[int]:
     """
     Get the EPSG code for the appropriate MGA zone and datum.
 
@@ -43,12 +43,12 @@ def get_epsg_code(longitude: float, datum: str) -> int:
     Returns:
         The EPSG code (e.g. 7856 for GDA2020 Zone 56).
 
-    Raises:
-        ValueError: If the datum is not supported.
+    Returns None if the datum is not supported.
     """
     base = _EPSG_BASE.get(datum)
     if base is None:
-        raise ValueError(f"Unsupported datum '{datum}'. Supported: {list(_EPSG_BASE.keys())}")
+        logging.warning(f"Unsupported datum '{datum}'. Supported: {list(_EPSG_BASE.keys())}")
+        return None
     zone = get_mga_zone(longitude)
     return base + zone
 
@@ -57,7 +57,7 @@ def convert_to_mga(
     longitude: float,
     latitude: float,
     datum: str,
-) -> Dict[str, Any]:
+) -> Optional[Dict[str, Any]]:
     """
     Convert WGS84 longitude/latitude to MGA easting/northing.
 
@@ -73,6 +73,9 @@ def convert_to_mga(
     """
     zone = get_mga_zone(longitude)
     epsg = get_epsg_code(longitude, datum)
+    
+    if epsg is None:
+        return None
 
     transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}", always_xy=True)
     easting, northing = transformer.transform(longitude, latitude)
@@ -91,7 +94,7 @@ def convert_to_mga(
     }
 
 
-def convert_geometry_from_resource(resource: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def convert_geometry_from_resource(resource: Dict[str, Any]) -> list:
     """
     Extract coordinates and datum from a mapped resource's location_data
     and convert to MGA easting/northing.
@@ -104,8 +107,8 @@ def convert_geometry_from_resource(resource: Dict[str, Any]) -> Optional[Dict[st
         resource: The mapped resource dictionary.
 
     Returns:
-        Dictionary with easting, northing, zone, datum, and epsg keys,
-        or None if coordinates could not be extracted.
+        List of dicts with easting, northing, zone, datum, and epsg keys.
+        Geometries that fail conversion (bad datum, missing coords) are skipped.
     """
     geometry_list = resource.get("location_data", {}).get("geometry", [])
 
@@ -136,6 +139,7 @@ def convert_geometry_from_resource(resource: Dict[str, Any]) -> Optional[Dict[st
             continue
 
         mga_value = convert_to_mga(longitude, latitude, datum)
-        converted_geometries.append(mga_value)
+        if mga_value:
+            converted_geometries.append(mga_value)
         
     return converted_geometries
