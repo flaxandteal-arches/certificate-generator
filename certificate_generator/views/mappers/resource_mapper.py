@@ -54,6 +54,13 @@ def _is_a4_portrait(width: int, height: int) -> bool:
     return abs((width / height) - _PAGE_ASPECT) <= _A4_ASPECT_TOLERANCE
 
 
+def _is_square(width: int, height: int) -> bool:
+    """True if a pixel size is ~square (aspect within tolerance of 1:1)."""
+    if not width or not height:
+        return False
+    return abs((width / height) - 1.0) <= _A4_ASPECT_TOLERANCE
+
+
 def _i18n_value(node: Dict[str, Any]) -> str:
     """Collapse an Arches i18n node {lang: {value, direction}} to the settings language, else en, else any."""
     for lang in (getattr(settings, 'LANGUAGE_CODE', None), 'en'):
@@ -125,7 +132,6 @@ class ResourceMapper:
         images = resource.get('images', [])
         if not images:
             return resource
-
         resource['boundary_map'] = []
         resource['site_plan'] = []
         resource['illustrations'] = []
@@ -146,7 +152,7 @@ class ResourceMapper:
                 continue  # Skip videos
             entry = {'alt_text': alt_text, 'url': url, 'filename': filename}
 
-            if 'Available' not in visibility:
+            if 'Available' not in visibility or 'Public' not in visibility:
                 continue
 
             is_main = 'Main Image for All Reports' in visibility
@@ -155,19 +161,12 @@ class ResourceMapper:
             is_boundary = 'Boundary Map' in visibility
             is_site_plan = 'Site Plan' in visibility
             is_report = 'Report' in visibility
-            name_or_alt = f"{filename} {alt_text}"
-
-            # Fail-safe for legacy resources never tagged: if neither map/plan
-            # tag is present, fall back to word-matching the filename/caption.
-            if not is_boundary and not is_site_plan:
-                is_boundary = _name_matches(name_or_alt, _BOUNDARY_MAP_TERMS)
-                is_site_plan = _name_matches(name_or_alt, _SITE_PLAN_TERMS)
 
             is_square = (
                 'Square' in visibility
                 or 'Square Shot' in visibility
-                or _name_matches(name_or_alt.replace('_', ' '), _SQUARE_TERMS)
             )
+            entry['is_square'] = is_square
             # Slots are non-exclusive: one image may carry several visibility
             # tags (e.g. both "Main Image for All Reports" and "Boundary Map")
             # and must then appear in every slot it's tagged for. Each slot gets
@@ -182,7 +181,7 @@ class ResourceMapper:
                 resource['main_boundary'] = dict(entry)
                 matched = True
             if is_boundary and not is_square:
-                resource['boundary_map'].append({**entry, 'type': ['main', 'square']})
+                resource['boundary_map'].append(entry)
                 matched = True
             if is_site_plan and not is_square:
                 resource['site_plan'].append(dict(entry))
@@ -190,42 +189,39 @@ class ResourceMapper:
             if is_report and not is_square:
                 resource['illustrations'].append(dict(entry))
 
-        # if no main image, fall back to the first illustration
-        if 'main_image' not in resource and len(resource['illustrations']) > 0:
+        # Resolve the hero main image: tagged main > first illustration.
+        if not resource.get('main_image') and resource['illustrations']:
             resource['main_image'] = dict(resource['illustrations'][0])
-        else:
-            resource['main_image'] = resource.get('main_image', {'alt_text': '', 'url': ''})
 
-        square_entries = [resource['main_image']]
-
-        # main_boundary falls back to the first Boundary Map; a copy so it can be cropped independently.
+        # Resolve the hero boundary map: tagged > first Boundary Map (a copy so
+        # it can be cropped independently of the gallery entry).
         if not resource.get('main_boundary') and resource['boundary_map']:
             resource['main_boundary'] = dict(resource['boundary_map'][0])
-            
+
+        # No main image but we have a boundary: promote the boundary to be the
+        # main image and clear the hero boundary slot so the same map isn't shown
+        # twice. Done before cropping so it picks up the square hero crop below.
+        if not resource.get('main_image', {}).get('url') and resource.get('main_boundary', {}).get('url'):
+            resource['main_image'] = dict(resource['main_boundary'])
+            resource['main_boundary'] = {}
+
+        resource['main_image'] = resource.get('main_image') or {'alt_text': '', 'url': ''}
+
+        # Gallery images always use the full frame.
         full_entries = resource['boundary_map'] + resource['site_plan'] + resource['illustrations']
-        self._attach_iiif_images(square_entries, region='square')
         self._attach_iiif_images(full_entries, region='full')
 
-        # Front-page main map: chrome-trim crop only for A4-portrait sheets, else centred square.
-        main_boundary = resource.get('main_boundary')
-        if main_boundary:
-            identifier = (
-                main_boundary.get('filename')
-                or iiif_identifier_from_url(main_boundary.get('url', ''))
-            )
-            size = iiif_image_size(identifier) if identifier else None
-            region = BOUNDARY_MAP_REGION if size and _is_a4_portrait(*size) else 'square'
-            self._attach_iiif_images([main_boundary], region=region)
+        # Hero crops: an already-square source is used whole, otherwise the main
+        # image is cropped to a centred square and the boundary to its chosen spot.
+        self._crop_hero(resource['main_image'], shape='square')
+        if resource.get('main_boundary'):
+            self._crop_hero(resource['main_boundary'], shape='boundary')
 
-        # set the main boundary placeholder if there isn't one
+        # Placeholder boundary if none was resolved. Keyed on presence, not
+        # truthiness, so a promoted-then-blanked boundary keeps its empty slot.
         if 'main_boundary' not in resource:
             no_map = load_image('no_boundary_map.jpg', Path('static/images'))
             resource['main_boundary'] = {'image': no_map, 'alt_text': 'No boundary map', 'url': ''}
-
-        # if there's no main image but there is a boundary, use the boundary as the main image
-        if not resource['main_image'].get('url') and resource['main_boundary'].get('url'):
-            resource['main_image'] = resource['main_boundary']
-            resource['main_boundary'] = {}
 
     def _attach_iiif_images(self, entries, region):
         """
@@ -247,6 +243,24 @@ class ResourceMapper:
 
         for entry in entries:
             entry['image'] = iiif_cache.get(entry.pop('_iiif_url', ''))
+
+    def _crop_hero(self, entry, shape):
+        """
+        Crop a front-page hero image in place. An already-square source (Square
+        tag, or ~square pixels by resolution) is used whole; otherwise the main
+        image is cropped to a centred square, and the boundary map to the
+        chrome-trim BOUNDARY_MAP_REGION on A4-portrait sheets (centred square
+        elsewhere).
+        """
+        identifier = entry.get('filename') or iiif_identifier_from_url(entry.get('url', ''))
+        size = iiif_image_size(identifier) if identifier else None
+        if entry.get('is_square') or (size and _is_square(*size)):
+            region = 'full'
+        elif shape == 'boundary' and size and _is_a4_portrait(*size):
+            region = BOUNDARY_MAP_REGION
+        else:
+            region = 'square'
+        self._attach_iiif_images([entry], region=region)
 
     def _map_address(self, resource: Dict[str, Any]) -> Dict[str, Any]:
         """
