@@ -8,6 +8,9 @@ from docx.shared import Pt, Twips
 from docxtpl import RichText as BaseRichText
 
 FONT = 'Noto Sans'
+# Bullet glyph per nesting depth (level 1 outermost): filled circle, then
+# hollow circle, then square for level 3 and deeper.
+BULLET_LEVELS = ['●', '○', '■']
 # Invisible markers prefixed to heading paragraphs so the post-render step
 # can identify them and apply paragraph-level spacing.
 HEADING_MARKERS = {
@@ -231,7 +234,7 @@ def apply_list_indentation(doc):
     Args:
         doc: A DocxTemplate instance (after render).
     """
-    pattern = re.compile(r'^(\t+)(●|\d+\.)\t')
+    pattern = re.compile(r'^(\t+)([●○■]|\d+\.)\t')
 
     def _fix(paragraphs):
         for para in paragraphs:
@@ -346,7 +349,8 @@ def mark2html(value, font_size=None):
                 if numbered:
                     indent += f"{list_index}.\t"
                 else:
-                    indent += "●\t"
+                    bullet = BULLET_LEVELS[min(max(level - 1, 0), len(BULLET_LEVELS) - 1)]
+                    indent += f"{bullet}\t"
                 rt = RichText()
                 rt.add(indent, font=FONT, size=font_size)
 
@@ -432,12 +436,25 @@ def parseHtmlToDoc(org_tag, level=0, numbered=False, font_size=None):
                     source = RichText()
                     source.add(con.contents[0], italic=True, font=FONT)
                     pars.append(source)
+            elif tag.name in ('ul', 'ol'):
+                # Nested lists are emitted separately by nested(); skip them
+                # here so their text isn't duplicated into the parent li.
+                continue
             else:
                 # Unrecognised tag (e.g. <http:> from unescaped URLs) —
                 # recurse into its children so nested content isn't lost.
                 pars.extend(parseHtmlToDoc(tag, level, numbered, font_size=font_size))
         else:
-            # Regular text - append to existing RichText or create new one
+            # Regular text - collapse insignificant HTML whitespace (source
+            # newlines/indentation) to single spaces like a browser would, and
+            # drop it at the paragraph start. Otherwise a literal newline inside
+            # an <li> renders as a blank line between bullets.
+            con = re.sub(r'\s+', ' ', str(con))
+            if not pars:
+                con = con.lstrip()
+            if not con:
+                continue
+            # append to existing RichText or create new one
             if len(pars) > 0 and isinstance(pars[-1], RichText):
                 pars[-1].add(con, font=FONT, size=font_size)
             else:
