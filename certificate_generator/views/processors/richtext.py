@@ -388,7 +388,7 @@ def mark2html(value, font_size=None):
                     para = [marker_rt] + para
                 yield para
             elif tag.name in ('ul', 'ol'):
-                yield from nested(tag.children, level=level+1, numbered=(tag.name == 'ol'))
+                yield from nested(tag.children, level=level+1, numbered=(tag.name == 'ol'), font_size=font_size)
     paragraphs = [
         tag for tag in nested(soup, font_size=font_size)
         if tag and any(
@@ -448,10 +448,12 @@ def parseHtmlToDoc(org_tag, level=0, numbered=False, font_size=None):
             # Regular text - collapse insignificant HTML whitespace (source
             # newlines/indentation) to single spaces like a browser would, and
             # drop it at the paragraph start. Otherwise a literal newline inside
-            # an <li> renders as a blank line between bullets.
-            con = re.sub(r'\s+', ' ', str(con))
+            # an <li> renders as a blank line between bullets. Only ASCII
+            # whitespace is collapsed/stripped so authored non-breaking spaces
+            # (\xa0) survive into the docx.
+            con = re.sub(r'[ \t\n\r\f\v]+', ' ', str(con))
             if not pars:
-                con = con.lstrip()
+                con = con.lstrip(' \t\n\r\f\v')
             if not con:
                 continue
             # append to existing RichText or create new one
