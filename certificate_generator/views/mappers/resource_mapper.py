@@ -141,7 +141,7 @@ class ResourceMapper:
             meta = image.get('_', [{}])[0]
             visibility = image.get('visibility', [])
             url = meta.get('url', '')
-            filename = meta.get('path') or meta.get('name') or ''
+            filename = iiif_identifier_from_url(meta.get('path') or meta.get('name') or '')
             # Caption node; fall back to the file's own altText/alt_text.
             alt_text = (
                 _caption(image)
