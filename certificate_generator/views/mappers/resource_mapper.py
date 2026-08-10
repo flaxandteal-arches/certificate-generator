@@ -141,7 +141,7 @@ class ResourceMapper:
             meta = image.get('_', [{}])[0]
             visibility = image.get('visibility', [])
             url = meta.get('url', '')
-            filename = meta.get('path') or meta.get('name') or ''
+            filename = iiif_identifier_from_url(meta.get('path') or meta.get('name') or '')
             # Caption node; fall back to the file's own altText/alt_text.
             alt_text = (
                 _caption(image)
@@ -176,17 +176,15 @@ class ResourceMapper:
             matched = False
             if is_main and not resource.get('main_image'):
                 resource['main_image'] = dict(entry)
-                matched = True
             if is_main_boundary and not resource.get('main_boundary'):
                 resource['main_boundary'] = dict(entry)
-                matched = True
             if is_boundary and not is_square:
                 resource['boundary_map'].append(entry)
                 matched = True
             if is_site_plan and not is_square:
                 resource['site_plan'].append(dict(entry))
                 matched = True
-            if is_report and not is_square:
+            if is_report and not (is_square or matched):
                 resource['illustrations'].append(dict(entry))
 
         # Resolve the hero main image: tagged main > first illustration.

@@ -64,8 +64,11 @@ class ResourceLoader:
         _ensure_graph_registered(graph_id)
 
         tiles = _serialise_tiles(list(
-            TileModel.objects.filter(resourceinstance_id=resource_id).values(
+            TileModel.objects.filter(resourceinstance_id=resource_id)
+            .order_by('sortorder', 'tileid')
+            .values(
                 'tileid', 'data', 'nodegroup_id', 'parenttile_id', 'resourceinstance_id',
+                'sortorder',
             )
         ))
 
