@@ -12,7 +12,7 @@ from typing import Union, Optional, Tuple, List, Dict
 from urllib.parse import urlparse, quote
 
 from django.conf import settings
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 def download_image(url: str, timeout: int = 30) -> Optional[BytesIO]:
@@ -51,6 +51,7 @@ def normalise_image_bytes(raw: bytes) -> Optional[Tuple[bytes, int, int]]:
     try:
         with Image.open(BytesIO(raw)) as im:
             im.load()
+            im = ImageOps.exif_transpose(im)
             rgb = im.convert("RGB")
         buf = BytesIO()
         rgb.save(buf, format="JPEG", quality=85)
