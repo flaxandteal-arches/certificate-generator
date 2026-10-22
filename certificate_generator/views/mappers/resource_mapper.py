@@ -152,7 +152,7 @@ class ResourceMapper:
                 continue  # Skip videos
             entry = {'alt_text': alt_text, 'url': url, 'filename': filename}
 
-            if 'Available' not in visibility or 'Public' not in visibility:
+            if 'Available' not in visibility:
                 continue
 
             is_main = 'Main Image for All Reports' in visibility
@@ -311,14 +311,13 @@ class ResourceMapper:
                 lot_on_plans.append(f'{lot} {plan}')
         
         third = math.ceil(len(lot_on_plans) / 3)
-        col1 = lot_on_plans[:third]
-        col2 = lot_on_plans[third:2*third]
-        col3 = lot_on_plans[2*third:]
+        columns = [lot_on_plans[:third], lot_on_plans[third:2*third], lot_on_plans[2*third:]]
 
+        # The templates loop `{{ lop }}` with no separator, so entries ran
+        # together and wrapped mid-number; docxtpl renders "\n" as a line break.
         resource['mapped_lot_on_plan'] = {
-            'column_1': col1,
-            'column_2': col2,
-            'column_3': col3,
+            f'column_{n}': [lop if i == 0 else '\n' + lop for i, lop in enumerate(column)]
+            for n, column in enumerate(columns, start=1)
         }
 
         return resource
