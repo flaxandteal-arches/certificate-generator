@@ -363,11 +363,19 @@
         },
         {
           "version": 8,
-          "status": "published",
+          "status": "archived",
           "filename": "certified-copy-of-entry_v8.docx",
           "created_at": "2026-06-24T16:25:00Z",
           "created_by": "Stuart",
           "changelog": "Moved process statement to the end, captalised criteria start text, fixed blank pages"
+        },
+        {
+          "version": 9,
+          "status": "published",
+          "filename": "certified-copy-of-entry_v9.docx",
+          "created_at": "2026-11-17T14:02:38Z",
+          "created_by": "andrea",
+          "changelog": "Document reference (CC####) now filled in from a sequential counter, in the body and the page header"
         }
       ]
     }

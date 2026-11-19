@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, JsonResponse
 from django.views import View
 from pathlib import Path
-from certificate_generator.views.services import document_service
+from certificate_generator.views.services import doc_reference, document_service
 from certificate_generator.views.loaders.versioned_resource_orchestrator import build_template_data
 from certificate_generator.views.registry.template_registry import TemplateRegistry
 
@@ -16,6 +16,9 @@ logger = logging.getLogger(__name__)
 # Templates that render the finalised (Active) version as "existing" data
 # alongside the selected version's "updated" data (existing_* keys).
 EXISTING_FLOW_TEMPLATES = {"heritage-recommendation-vary"}
+
+# Templates that carry a sequential document reference (docReference).
+DOC_REFERENCE_TEMPLATES = {"certified-copy-of-entry"}
 
 
 class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
@@ -72,6 +75,16 @@ class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
             mapped_data = resolve_concepts(data)
 
             template_path = document_service_svc.resolve_template(template_id, version)
+            # Issued after the template resolves so a bad request burns no number.
+            if slug in DOC_REFERENCE_TEMPLATES:
+                mapped_data["docReference"] = doc_reference.next_doc_reference(
+                    slug,
+                    user=req.user,
+                    resource_id=str(resource_id),
+                    resource_version_id=str(resource_version_id or ""),
+                    resource_name=(resource_name or "")[:500],
+                    template_version=_version_from_path(template_path),
+                )
             document_bytes = document_service_svc.generate_document(template_path, mapped_data)
 
             # Build response filename. Sanitize the client-supplied resource
@@ -108,6 +121,12 @@ class CertificateGeneratorPluginProcessTemplate(LoginRequiredMixin, View):
                 {"error": "Internal server error"},
                 status=500,
             )
+
+
+def _version_from_path(template_path):
+    """Version actually used, from a filename like certified-copy-of-entry_v9.docx."""
+    match = re.search(r"_v(\d+)\.docx$", Path(template_path).name)
+    return int(match.group(1)) if match else None
 
 
 def resolve_concepts(data):
