@@ -84,3 +84,17 @@ docker exec -it <container_name> python manage.py plugin register \
 ```
 
 The plugin will then appear in the Arches sidebar navigation.
+
+### Document reference numbers (optional)
+
+Certified Copy of Entry documents get a sequential `docReference` (e.g. `CC0448`),
+issued from a database counter and bumped on every generation. Settings:
+
+```python
+CERTIFICATE_GENERATOR_DOC_REF_PREFIX = "CC"  # default
+CERTIFICATE_GENERATOR_DOC_REF_START = 448    # first number to issue, default 1
+CERTIFICATE_GENERATOR_DOC_REF_WIDTH = 4      # zero padding, default 4
+```
+
+The number issued is `max(last issued + 1, START)`: raising START moves the sequence
+forward, lowering it never reissues a number. Run `migrate` after upgrading.
